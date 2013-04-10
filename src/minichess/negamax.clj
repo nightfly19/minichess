@@ -10,11 +10,26 @@
                                     :score (heuristic (nth result 1))})
                       (move-gen state))))
 
-;;(defn negate [state test-fn]
+(defn select-best [move-a move-b]
+  (if (> (:score move-a) (:score move-b))
+    move-a
+    move-b))
+
+(defn negater [score depth]
+  (if (= 0 (mod depth 2))
+    score
+    (- score)))
 
 (defn negamax
   ([state heuristic depth]
      (if (or (not= :ongoing (game-status state))
              (<= depth 0))
-       (heuristic state)
-       (possible-moves state))))
+       {:score (negater (heuristic state) depth)
+        :move nil}
+       (reduce (fn [best-move possible-move]
+                 (select-best best-move
+                              (assoc (negamax (apply-move state possible-move) heuristic (dec depth))
+                                :move possible-move)))
+               {:score (dec lose-threshold)
+                :move nil}
+               (possible-moves state)))))
