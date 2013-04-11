@@ -32,6 +32,14 @@
    :on-move :white
    :board initial-board})
 
+(def opp-color
+  {:white :black
+   :black :white})
+
+(def piece-class
+  {\R \R \N \N \B \B \Q \Q \K \K \P \P
+   \r \R \n \N \b \B \q \Q \k \K \p \P})
+
 (defn x [ coord] (nth coord 0))
 (defn y [ coord] (nth coord 1))
 (defn from [ move] (nth move 0))
@@ -43,6 +51,7 @@
      (defn ~name [& args#] (apply temp-fn# args#))))
 
 (defnmemoized manhat [ coord-a  coord-b]
+  "Computes the manhatten distance between two coordinates"
   (+ (math/abs (- (x coord-a) (x coord-b)))
      (math/abs (- (y coord-a) (y coord-b)))))
 
@@ -50,14 +59,6 @@
 (let [spaces (combo/cartesian-product (range 0 5) (range 0 6))]
   (doseq [[from to] (combo/cartesian-product spaces spaces)]
     (manhat (vec from) (vec to))))
-
-(defn opp-color [color]
-  (if (= color :white) :black :white))
-
-(defn piece-class [piece]
-  (try
-    (first (string/upper-case piece))
-    (catch Exception e nil)))
 
 (defn vectorize-board [board]
   (into [] (map #(into [] %1) board)))
@@ -72,7 +73,7 @@
       (if (not= piece \.) piece nil))))
 
 (defn color-at [board coord]
-  (get piece-colors (piece-at board coord)))
+  (piece-colors (piece-at board coord)))
 
 (defn coord-shift [coord coord-d]
   [(+ (x coord) (x coord-d)) (+ (y coord) (y coord-d))])
