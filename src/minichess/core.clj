@@ -236,8 +236,9 @@
      (= 1 (count kings)) (color-at (:board state) (first kings))
      :default :ongoing)))
 
+(def game-status (memoize game-status))
+
 (defn apply-move [state move]
-  ;;(when-not (move-legal? state move) (throw (Exception. "Making illegal move")))
   (-> state
       (#(assoc %1 :board (move-piece (:board %1) (from move) (to move))))
       (#(assoc %1 :board (promote-pawns (:board %1))))
@@ -248,6 +249,8 @@
 
 (defn possible-states [state]
   (reduce (fn [states move] (assoc states move (apply-move state move))) {} (possible-moves state)))
+
+(def possible-states (memoize possible-states))
 
 (defn game-over? [state]
   (not= :ongoing (game-status state)))
