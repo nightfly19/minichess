@@ -1,7 +1,7 @@
-(ns minichess.heuristic-test
+(ns elo100.heuristic-test
   (:use clojure.test
         minichess.core
-        minichess.heuristic))
+        elo100.heuristic))
 
 (deftest score-test
   (testing "initial even position"

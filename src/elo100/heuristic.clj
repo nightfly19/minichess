@@ -1,4 +1,4 @@
-(ns minichess.heuristic
+(ns elo100.heuristic
   (:use minichess.core))
 
 (def piece-values
