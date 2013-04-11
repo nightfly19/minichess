@@ -38,6 +38,7 @@
 (defn to [ move] (nth move 1))
 
 (defmacro defnmemoized [name l-list & body]
+  "Defines and memoizes a function in a single step"
   `(let [temp-fn# (fn ~l-list ~@body)]
      (defn ~name [& args#] (apply temp-fn# args#))))
 
@@ -183,14 +184,13 @@
    #{[1 0] [-1 0] [0 1] [0 -1] }))
 
 (defmethod movelist \B [board coord]
-  (into #{}
-        (concat
-         (mover
-          (fn [dir] (move-scan board coord dir true))
-          #{[1 1] [-1 1] [1 -1] [-1 -1] })
-         (mover
-          (fn [dir] (move-scan board coord dir false))
-          #{[0 1] [0 -1] [1 0] [-1 0] }))))
+  (reduce set/union
+          (mover
+           (fn [dir] (move-scan board coord dir true))
+           #{[1 1] [-1 1] [1 -1] [-1 -1] })
+          (mover
+           (fn [dir] (move-scan board coord dir false))
+           #{[0 1] [0 -1] [1 0] [-1 0] })))
 
 (defmethod movelist \P [board coord]
   (let [color (color-at board coord)
@@ -210,7 +210,7 @@
                                   (let [target (nth pos-capture 1)]
                                     (capture? board color target)))
                                 possible-captures)]
-    (into #{} (concat normal-moves actual-captures))))
+    (reduce set/union  normal-moves actual-captures)))
 
 (defmethod movelist :default [board coord] #{})
 
