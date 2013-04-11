@@ -53,5 +53,3 @@
                                  :move possible-move))))
                best
                (possible-moves state)))))
-
-cow-count

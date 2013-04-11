@@ -34,15 +34,16 @@
 
 (defn x [ coord] (nth coord 0))
 (defn y [ coord] (nth coord 1))
-
 (defn from [ move] (nth move 0))
 (defn to [ move] (nth move 1))
 
-(defn manhat [ coord-a  coord-b]
+(defmacro defnmemoized [name l-list & body]
+  `(let [temp-fn# (fn ~l-list ~@body)]
+     (defn ~name [& args#] (apply temp-fn# args#))))
+
+(defnmemoized manhat [ coord-a  coord-b]
   (+ (math/abs (- (x coord-a) (x coord-b)))
      (math/abs (- (y coord-a) (y coord-b)))))
-
-(def manhat (memoize manhat))
 
 ;;Warm up the manhat cache
 (let [spaces (combo/cartesian-product (range 0 5) (range 0 6))]
@@ -220,23 +221,19 @@
                              (movelist board piece))
                            pieces)))))
 
-(defn possible-moves [state]
+(defnmemoized possible-moves [state]
   (moves-for-color (:board state) (:on-move state)))
-
-(def possible-moves (memoize possible-moves))
 
 (defn move-legal? [state move]
   (contains? (possible-moves state) move))
 
-(defn game-status [state]
+(defnmemoized game-status [state]
   (let [kings (locations-of-piece (:board state) \K)]
     (cond
      (<= 40 (:turn state)) :draw
      (= 0 (count (possible-moves state))) (opp-color (:on-move state))
      (= 1 (count kings)) (color-at (:board state) (first kings))
      :default :ongoing)))
-
-(def game-status (memoize game-status))
 
 (defn apply-move [state move]
   (-> state
@@ -247,10 +244,8 @@
           %1))
       (#(assoc %1 :on-move (opp-color (:on-move %1))))))
 
-(defn possible-states [state]
+(defnmemoized possible-states [state]
   (reduce (fn [states move] (assoc states move (apply-move state move))) {} (possible-moves state)))
-
-(def possible-states (memoize possible-states))
 
 (defn game-over? [state]
   (not= :ongoing (game-status state)))
