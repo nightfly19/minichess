@@ -17,7 +17,6 @@
 
 (def empty-board
   (vec (repeat 6 (vec (repeat 5 \.)))))
-;;(->> \. (repeat 5) (vec) (repeat 6) (vec)))
 
 (def initial-board
   [(vec "kqbnr")
@@ -60,10 +59,7 @@
   (doseq [[from to] (combo/cartesian-product spaces spaces)]
     (manhat (vec from) (vec to))))
 
-(defn vectorize-board [board]
-  (into [] (map #(into [] %1) board)))
-
-(defn in-bounds [coord]
+(defnmemoized in-bounds [coord]
   (and (>= (x coord) 0) (<= (x coord) x-upper)
        (>= (y coord) 0) (<= (y coord) y-upper)))
 
@@ -223,12 +219,15 @@
                            pieces)))))
 
 (defnmemoized possible-moves [state]
+  "Returns a set of all legal moves for state (memoized)"
   (moves-for-color (:board state) (:on-move state)))
 
-(defn move-legal? [state move]
+(defnmemoized move-legal? [state move]
+  "Is move legal for state (memoized)"
   (contains? (possible-moves state) move))
 
 (defnmemoized game-status [state]
+  "computes the current status of the game (memoized"
   (let [kings (locations-of-piece (:board state) \K)]
     (cond
      (<= 40 (:turn state)) :draw
@@ -237,6 +236,7 @@
      :default :ongoing)))
 
 (defn apply-move [state move]
+  "returns a new state with the move given applied"
   (-> state
       (#(assoc %1 :board (move-piece (:board %1) (from move) (to move))))
       (#(assoc %1 :board (promote-pawns (:board %1))))
