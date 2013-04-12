@@ -181,13 +181,13 @@
    #{[1 0] [-1 0] [0 1] [0 -1] }))
 
 (defmethod movelist \B [board coord]
-  (reduce set/union
-          (mover
-           (fn [dir] (move-scan board coord dir true))
-           #{[1 1] [-1 1] [1 -1] [-1 -1] })
-          (mover
-           (fn [dir] (move-scan board coord dir false))
-           #{[0 1] [0 -1] [1 0] [-1 0] })))
+  (reduce set/union #{}
+          [(mover
+            (fn [dir] (move-scan board coord dir true))
+            #{[1 1] [-1 1] [1 -1] [-1 -1] })
+           (mover
+            (fn [dir] (move-scan board coord dir false))
+            #{[0 1] [0 -1] [1 0] [-1 0] })]))
 
 (defmethod movelist \P [board coord]
   (let [color (color-at board coord)
@@ -207,7 +207,7 @@
                                   (let [target (nth pos-capture 1)]
                                     (capture? board color target)))
                                 possible-captures)]
-    (reduce set/union  normal-moves actual-captures)))
+    (reduce set/union #{} [normal-moves actual-captures])))
 
 (defmethod movelist :default [board coord] #{})
 
