@@ -1,7 +1,6 @@
 (ns minichess.human
   (:use minichess.core
-        minichess.external
-        minichess.play))
+        minichess.external))
 
 (defn human-move [state]
   (println "Move: ")
