@@ -38,10 +38,12 @@
   ([state heuristic depth]
      (swap! cow-count (fn [_] 0))
      (let [temp (negamax state heuristic depth vanilla-pgs)]
-       (println @cow-count)
-       temp))
+       ;;(println @cow-count)
+       (:move temp)))
   ([state heuristic depth best]
      (swap! cow-count inc)
+     ;;(when (= 0 (mod @cow-count 100))
+     ;;  (do (println @cow-count) (flush)))
      (if (or (not= :ongoing (game-status state))
              (<= depth 0))
        (assoc best :alpha (heuristic state))
