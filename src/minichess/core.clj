@@ -10,6 +10,8 @@
 (def y-upper 5)
 (def max-turns 40)
 
+(def all-directions (disj (into #{} (combo/cartesian-product (range -1 2) (range -1 2))) [0 0]))
+
 (def piece-colors
   (let [w :white b :black]
     {\K w, \Q w, \B w, \N w, \R w, \P w,
@@ -164,16 +166,15 @@
    (fn [dir] (move-scan board coord dir true 3))
    #{[-1 2] [1 2] [2 1] [2 -1] [1 -2] [-1 -2] [-2 -1] [-2 1]}))
 
-(let [all-directions (disj (into #{} (combo/cartesian-product (range -1 2) (range -1 2))) [0 0])]
-  (defmethod movelist \Q [board coord]
-    (mover
-     (fn [dir] (move-scan board coord dir true))
-     all-directions))
+(defmethod movelist \Q [board coord]
+  (mover
+   (fn [dir] (move-scan board coord dir true))
+   all-directions))
 
-  (defmethod movelist \K [board coord]
-    (mover
-     (fn [dir] (move-scan board coord dir true 1))
-     all-directions)))
+(defmethod movelist \K [board coord]
+  (mover
+   (fn [dir] (move-scan board coord dir true 1))
+   all-directions))
 
 (defmethod movelist \R [board coord]
   (mover
