@@ -48,8 +48,9 @@
            start-time (System/nanoTime)]
        (-> (negamax state heuristic prune depth counter vanilla-pgs)
            (assoc :nodes @counter)
-           (assoc :time (/ (double (- (System/nanoTime) start-time)) 1000000)))))
-  
+           (assoc :time (/ (double (- (System/nanoTime) start-time)) 1000000))
+           (assoc :depth depth))))
+
   ([state heuristic prune depth counter best]
      (swap! counter inc)
      (if (or (not= :ongoing (game-status state))
