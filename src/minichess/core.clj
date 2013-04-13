@@ -46,6 +46,18 @@
 (defn from [ move] (nth move 0))
 (defn to [ move] (nth move 1))
 
+(defn coord? [p-coord]
+  (and (sequential? p-coord)
+       (= 2 (count p-coord))
+       (integer? (x p-coord))
+       (integer? (y p-coord))))
+
+(defn move? [p-move]
+  (and (sequential? p-move)
+       (= 2 (count p-move))
+       (coord? (from p-move))
+       (coord? (to p-move))))
+
 (defmacro defnmemoized [name l-list & body]
   "Defines and memoizes a function in a single step"
   `(let [temp-fn# (fn ~l-list ~@body)]
@@ -61,7 +73,7 @@
   (doseq [[from to] (combo/cartesian-product spaces spaces)]
     (manhat (vec from) (vec to))))
 
-(defnmemoized in-bounds [coord]
+(defnmemoized in-bounds[coord]
   (and (>= (x coord) 0) (<= (x coord) x-upper)
        (>= (y coord) 0) (<= (y coord) y-upper)))
 
@@ -172,9 +184,13 @@
    all-directions))
 
 (defmethod movelist \K [board coord]
-  (mover
-   (fn [dir] (move-scan board coord dir true 1))
-   all-directions))
+  (reduce set/union #{}
+          [(mover
+            (fn [dir] (move-scan board coord dir true 1))
+            #{[-1 0] [1 0] [0 -1] [0 1]})
+           (mover
+            (fn [dir] (move-scan board coord dir true 2))
+            #{[-1 -1] [-1 1] [1 1] [1 -1]})]))
 
 (defmethod movelist \R [board coord]
   (mover
@@ -187,7 +203,7 @@
             (fn [dir] (move-scan board coord dir true))
             #{[1 1] [-1 1] [1 -1] [-1 -1] })
            (mover
-            (fn [dir] (move-scan board coord dir false))
+            (fn [dir] (move-scan board coord dir false 1))
             #{[0 1] [0 -1] [1 0] [-1 0] })]))
 
 (defmethod movelist \P [board coord]
@@ -204,10 +220,10 @@
         possible-captures (mover
                            (fn [dir] (move-scan board coord dir true 2))
                            capture-dirs)
-        actual-captures (filter (fn [pos-capture]
+        actual-captures (into #{} (filter (fn [pos-capture]
                                   (let [target (nth pos-capture 1)]
                                     (capture? board color target)))
-                                possible-captures)]
+                                possible-captures))]
     (reduce set/union #{} [normal-moves actual-captures])))
 
 (defmethod movelist :default [board coord] #{})
