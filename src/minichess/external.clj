@@ -20,7 +20,6 @@
 
 (defn deserialize-coord [coord]
   (let [[_ x y] (first (re-seq #"^(\D)(\d)$" coord))]
-    (print x)
     [(- (int (first x)) (int \a))
      (- (. Integer parseInt y) 1)]))
 

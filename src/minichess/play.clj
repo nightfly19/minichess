@@ -12,6 +12,8 @@
      (let [status (game-status state)]
        (if (= status :ongoing)
          (let [player-move ((if (= (:on-move state) :white) white-player black-player) state)]
+           (println "Move debug info:" player-move)
+           (println)
            (print-move (:move player-move))
            (println)
            (let [new-state (-> state
