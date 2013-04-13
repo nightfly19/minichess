@@ -5,7 +5,7 @@
         elo100.heuristic))
 
 (defn bot-move [state]
-  (negamax state score 4))
+  (negamax state score true 4))
 
 (defn play-bot []
   (play/play bot-move human/human-move))

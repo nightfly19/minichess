@@ -34,24 +34,30 @@
 
 (def cow-count (atom 0))
 
+(defn random-ordered-possible-moves [state]
+  (sort-by (fn [_] (rand-int 10))
+           (possible-moves state)))
+
+(defn ordered-possible-moves [state heuristic]
+  (sort-by (fn [move] (heuristic (apply-move state move)))
+           (possible-moves state)))
+
 (defn negamax
-  ([state heuristic depth]
-     (swap! cow-count (fn [_] 0))
-     (let [temp (negamax state heuristic depth vanilla-pgs)]
-       ;;(println @cow-count)
-       (:move temp)))
-  ([state heuristic depth best]
+  ([state heuristic prune depth]
+     (let [temp (negamax state heuristic prune depth vanilla-pgs)]
+       (println "Moo: " temp)
+       (flush)
+       temp))
+  ([state heuristic prune depth best]
      (swap! cow-count inc)
-     ;;(when (= 0 (mod @cow-count 100))
-     ;;  (do (println @cow-count) (flush)))
      (if (or (not= :ongoing (game-status state))
              (<= depth 0))
        (assoc best :alpha (heuristic state))
        (reduce (fn [best-move possible-move]
-                 (if (prune? best-move)
+                 (if (and prune (prune? best-move))
                    best-move
                    (update-pgs best-move
-                               (assoc (negater (negamax (apply-move state possible-move) heuristic (dec depth) (invert-ab best-move)))
+                               (assoc (negater (negamax (apply-move state possible-move) heuristic prune (dec depth) (invert-ab best-move)))
                                  :move possible-move))))
                best
-               (possible-moves state)))))
+               (ordered-possible-moves state heuristic)))))

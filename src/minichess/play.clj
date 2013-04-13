@@ -12,10 +12,10 @@
      (let [status (game-status state)]
        (if (= status :ongoing)
          (let [player-move ((if (= (:on-move state) :white) white-player black-player) state)]
-           (print-move player-move)
+           (print-move (:move player-move))
            (println)
            (let [new-state (-> state
-                               (#(apply-move %1 player-move)))]
+                               (#(apply-move %1 (:move player-move))))]
              (print-state new-state)
              (println)
              (play new-state white-player black-player)))
