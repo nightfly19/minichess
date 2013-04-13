@@ -1,9 +1,6 @@
 (ns minichess.play
   (:use minichess.core
-        minichess.external
-        minichess.human
-        elo100.negamax
-        elo100.heuristic)
+        minichess.external)
   (:gen-class))
 
 (defn play
@@ -27,11 +24,4 @@
            {:outcome status
             :state state})))))
 
-(defn bot [state]
-  (negamax state score 4))
 
-(defn play-bot []
-  (play bot human-move))
-
-(defn -main []
-  (play-bot))
