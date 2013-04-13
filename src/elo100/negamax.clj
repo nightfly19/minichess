@@ -44,12 +44,14 @@
 
 (defn negamax
   ([state heuristic prune depth]
-     (let [temp (negamax state heuristic prune depth vanilla-pgs)]
-       (println "Moo: " temp)
-       (flush)
-       temp))
-  ([state heuristic prune depth best]
-     (swap! cow-count inc)
+     (let [counter (atom 0)
+           start-time (System/nanoTime)]
+       (-> (negamax state heuristic prune depth counter vanilla-pgs)
+           (assoc :nodes @counter)
+           (assoc :time (/ (double (- (System/nanoTime) start-time)) 1000000)))))
+  
+  ([state heuristic prune depth counter best]
+     (swap! counter inc)
      (if (or (not= :ongoing (game-status state))
              (<= depth 0))
        (assoc best :alpha (heuristic state))
@@ -57,7 +59,8 @@
                  (if (and prune (prune? best-move))
                    best-move
                    (update-pgs best-move
-                               (assoc (negater (negamax (apply-move state possible-move) heuristic prune (dec depth) (invert-ab best-move)))
+                               (assoc (negater (negamax (apply-move state possible-move) heuristic prune (dec depth) counter
+                                                        (invert-ab best-move)))
                                  :move possible-move))))
                best
                (ordered-possible-moves state heuristic)))))

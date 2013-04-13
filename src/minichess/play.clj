@@ -24,4 +24,3 @@
            {:outcome status
             :state state})))))
 
-
