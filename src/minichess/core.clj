@@ -61,7 +61,19 @@
 (defmacro defnmemoized [name l-list & body]
   "Defines and memoizes a function in a single step"
   `(let [temp-fn# (fn ~l-list ~@body)]
-     (defn ~name [& args#] (apply temp-fn# args#))))
+     (def ~name (memoize temp-fn#))))
+
+(defn memoize-on-identity [to-memoize]
+  "Memoize a function that takes a single argument on the identity of the argument"
+  (let [thing-cache (atom (hash-map))
+        not-found-sym (gensym)]
+    (fn [key]
+      (let [result (get @thing-cache (System/identityHashCode key) not-found-sym)]
+        (if (not= not-found-sym)
+          result
+          (let [value (to-memoize key)]
+            (swap! thing-cache assoc (System/identityHashCode key) value)
+            value))))))
 
 (defnmemoized manhat [ coord-a  coord-b]
   "Computes the manhatten distance between two coordinates"
@@ -221,9 +233,9 @@
                            (fn [dir] (move-scan board coord dir true 2))
                            capture-dirs)
         actual-captures (into #{} (filter (fn [pos-capture]
-                                  (let [target (nth pos-capture 1)]
-                                    (capture? board color target)))
-                                possible-captures))]
+                                            (let [target (nth pos-capture 1)]
+                                              (capture? board color target)))
+                                          possible-captures))]
     (reduce set/union #{} [normal-moves actual-captures])))
 
 (defmethod movelist :default [board coord] #{})
@@ -261,9 +273,6 @@
           (assoc %1 :turn (inc (:turn %1)))
           %1))
       (#(assoc %1 :on-move (opp-color (:on-move %1))))))
-
-(defnmemoized possible-states [state]
-  (reduce (fn [states move] (assoc states move (apply-move state move))) {} (possible-moves state)))
 
 (defn game-over? [state]
   (not= :ongoing (game-status state)))

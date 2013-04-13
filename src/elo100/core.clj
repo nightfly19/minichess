@@ -16,13 +16,19 @@
     (.stop thread)
     @result))
 
-(defn bot-move [state]
-  (iterative-deepening (partial negamax state score true) 10 5))
+(defn time-limited-bot-move [state time-limit]
+  (iterative-deepening (partial negamax state score true) 10 time-limit))
 
-(defn play-bot []
-  (play/play bot-move human/human-move))
+(defn depth-limited-bot-move [state max-depth]
+  (negamax state score true max-depth))
+
+(defn play-bot-time-limited [time-limit]
+  (play/play #(time-limited-bot-move %1 time-limit) human/human-move))
+
+(defn play-bot-depth-limited [depth-limit]
+  (play/play #(depth-limited-bot-move %1 depth-limit) human/human-move))
 
 (defn -main []
   (println "Playing a game of minichess against elo100")
-  (play-bot))
+  (play-bot-time-limited 0.9))
 
