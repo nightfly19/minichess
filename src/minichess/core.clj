@@ -60,8 +60,10 @@
 
 (defmacro defnmemoized [name l-list & body]
   "Defines and memoizes a function in a single step"
-  `(let [temp-fn# (fn ~l-list ~@body)]
-     (def ~name (memoize temp-fn#))))
+  `(let [temp-fn# (fn ~l-list ~@body)
+         temp-memoized# (memoize temp-fn#)]
+     (defn ~name [& args#]
+       (apply temp-memoized# args#))))
 
 (defn memoize-on-identity [to-memoize]
   "Memoize a function that takes a single argument on the identity of the argument"
@@ -167,7 +169,7 @@
           locations))
 
 (defn- mover [action directions]
-  (reduce set/union (map action directions)))
+  (reduce #'set/union (map action directions)))
 
 (defn promote-pawns [board]
   (let [pawns-to-promote
@@ -196,7 +198,7 @@
    all-directions))
 
 (defmethod movelist \K [board coord]
-  (reduce set/union #{}
+  (reduce #'set/union #{}
           [(mover
             (fn [dir] (move-scan board coord dir true 1))
             #{[-1 0] [1 0] [0 -1] [0 1]})
@@ -210,7 +212,7 @@
    #{[1 0] [-1 0] [0 1] [0 -1] }))
 
 (defmethod movelist \B [board coord]
-  (reduce set/union #{}
+  (reduce #'set/union #{}
           [(mover
             (fn [dir] (move-scan board coord dir true))
             #{[1 1] [-1 1] [1 -1] [-1 -1] })
@@ -236,7 +238,7 @@
                                             (let [target (nth pos-capture 1)]
                                               (capture? board color target)))
                                           possible-captures))]
-    (reduce set/union #{} [normal-moves actual-captures])))
+    (reduce #'set/union #{} [normal-moves actual-captures])))
 
 (defmethod movelist :default [board coord] #{})
 
