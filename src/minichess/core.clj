@@ -63,7 +63,8 @@
   `(let [temp-fn# (fn ~l-list ~@body)
          temp-memoized# (memoize temp-fn#)]
      (defn ~name [& args#]
-       (apply temp-memoized# args#))))
+       (apply temp-fn# args#))))
+;;(apply temp-memoized# args#))))
 
 (defn memoize-on-identity [to-memoize]
   "Memoize a function that takes a single argument on the identity of the argument"
@@ -155,12 +156,30 @@
     (filter filter-fn spaces)))
 
 (defn locations-of-color [board color]
-  (filter-board board (fn [location]
-                        (= color (color-at board location)))))
+  (loop [y-loc 0, y-vec board, y-locs '()]
+    (if (empty? y-vec) y-locs
+        (recur (inc y-loc) (rest y-vec)
+               (loop [x-loc 0, x-vec (first y-vec), locs y-locs]
+                 (if (empty? x-vec) locs
+                     (recur (inc x-loc) (rest x-vec)
+                            (if (= color (piece-colors (first x-vec)))
+                              (cons [x-loc y-loc] locs)
+                              locs))))))))
+;;  (filter-board board (fn [location]
+;;                        (= color (color-at board location)))))
 
 (defn locations-of-piece [board desired-piece-class]
-  (filter-board board (fn [location]
-                        (= desired-piece-class (piece-class (piece-at board  location))))))
+  (loop [y-loc 0, y-vec board, y-locs '()]
+    (if (empty? y-vec) y-locs
+        (recur (inc y-loc) (rest y-vec)
+               (loop [x-loc 0, x-vec (first y-vec), locs y-locs]
+                 (if (empty? x-vec) locs
+                     (recur (inc x-loc) (rest x-vec)
+                            (if (= desired-piece-class (piece-class (first x-vec)))
+                              (cons [x-loc y-loc] locs)
+                              locs))))))))
+;;(filter-board board (fn [location]
+;;                      (= desired-piece-class (piece-class (piece-at board  location))))))
 
 (defn filter-promotable-locations [locations]
   (filter (fn [location]
@@ -243,10 +262,10 @@
 (defmethod movelist :default [board coord] #{})
 
 (defn moves-for-color [board color]
-  (let [pieces (locations-of-color board color)]
+  (let [pieces (#'locations-of-color board color)]
     (into #{} (reduce concat
                       (map (fn [piece]
-                             (movelist board piece))
+                             (#'movelist board piece))
                            pieces)))))
 
 (defnmemoized possible-moves [state]
@@ -278,3 +297,13 @@
 
 (defn game-over? [state]
   (not= :ongoing (game-status state)))
+
+;; (defn -main []
+;;   (let [prompt-then-do (fn [thing-name thing]
+;;                          (println thing-name)
+;;                          (read-line)
+;;                          (println "doing now")
+;;                          (thing)
+;;                          (println "done now"))]
+;;     (prompt-then-do "1000x possible-moves"
+;;                     #(time (dotimes [i 1000] (possible-moves initial-game-state))))))
