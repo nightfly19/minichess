@@ -1,3 +1,5 @@
+(in-package :elo100)
+
 (defmacro memoize (fn-name hash-fn)
   (let ((old-function (gensym "old-function"))
         (new-function (gensym "new-function"))
@@ -30,9 +32,9 @@
     `(let* ((,old-function (fdefinition ',fn-name))
             (,value-cache (make-hash-table :test 'equal))
             (,new-function (lambda (&rest ,state-arg)
-                             (if (not (nth-value 1 (gethash ,state-arg ,value-cache)))
+                             (if (not (nth-value 1 (gethash (sxhash ,state-arg) ,value-cache)))
                                  (let ((,new-value (apply ,old-function ,state-arg)))
-                                   (setf (gethash ,state-arg ,value-cache) ,new-value)
+                                   (setf (gethash (sxhash ,state-arg) ,value-cache) ,new-value)
                                    ,new-value)
-                                 (gethash ,state-arg ,value-cache)))))
+                                 (gethash (sxhash ,state-arg) ,value-cache)))))
        (setf (fdefinition ',fn-name) ,new-function))))
