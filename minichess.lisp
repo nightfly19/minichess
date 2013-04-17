@@ -1,4 +1,15 @@
 
+(defmacro time-code (&body body)
+  (let ((start-time (gensym "start"))
+        (output (gensym "output"))
+        (end-time (gensym "end")))
+    `(let* ((,start-time (get-internal-real-time))
+            (,output (progn ,@body))
+            (,end-time (get-internal-real-time)))
+       (format T "~A~%" (/ (float (- ,end-time ,start-time))
+                           internal-time-units-per-second))
+       ,output)))
+
 (defparameter *piece-color*
   (let ((new-piece-color
          (make-array 255 :initial-element nil)))
@@ -162,6 +173,24 @@
                 (when (eql color spot-color)
                   (setf moves (move-list board coord moves))))))
     moves))
+
+(defun game-status (state)
+  ;; Stealing whoppers way of checking for kings here :)
+  (let ((white-king nil)
+        (black-king nil)
+        (board (getf state :board)))
+    (loop for y from 0 to 5 do
+         (loop for x from 0 to 4 do
+              (let ((piece (piece-at board (cons x y))))
+                (cond
+                  ((eql piece #\K) (setf white-king T))
+                  ((eql piece #\k) (setf black-king T))))))
+
+    (cond
+      ((not white-king) :black)
+      ((not black-king) :white)
+      ((= 0 (length (possible-moves state))) :tie)
+      (T :ongoing))))
 
 ;; TODO move-piece
 ;; TODO locations-of-color
