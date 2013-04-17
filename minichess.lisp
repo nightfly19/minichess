@@ -242,7 +242,7 @@
       ((= 0 (length (possible-moves state))) :tie)
       (T :ongoing))))
 
-(memoize game-status #'hash-state)
-;;(lazy-memoization game-status)
+;;(memoize game-status #'hash-state)
+(lazy-memoization game-status)
 
 ;; TODO move-piece
