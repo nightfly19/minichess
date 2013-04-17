@@ -85,7 +85,7 @@
                (cond
                  ((not capture) (return-from move-scan moves))
                  ((eql color (piece-color piece)) (return-from move-scan moves))
-                 (T (return (cons (cons coord cur-coord) moves))))
+                 (T (return-from move-scan (cons (cons coord cur-coord) moves))))
                (when (not require-capture)
                  (setf moves (cons (cons coord cur-coord) moves))))
            (setf cur-coord (add-coord cur-coord coord-d))))
@@ -95,7 +95,7 @@
   (reduce action directions :initial-value moves))
 
 (defgeneric inner-move-list (board coord moves piece-class))
-(defmethod inner-move-list (board coord moves piece-class) nil)
+(defmethod inner-move-list (board coord moves piece-class) moves)
 
 (defmethod inner-move-list (board coord moves (piece-class (eql #\N)))
   (mover (lambda (moves direction)
@@ -150,6 +150,18 @@
 
 (defun move-list (board coord moves)
   (inner-move-list board coord moves (piece-class (piece-at board coord))))
+
+(defun possible-moves (state)
+  (let ((board (getf state :board))
+        (color (getf state :on-move))
+        (moves ()))
+    (loop for y from 0 to 5 do
+         (loop for x from 0 to 4 do
+              (let* ((coord (cons x y))
+                     (spot-color (color-at board coord)))
+                (when (eql color spot-color)
+                  (setf moves (move-list board coord moves))))))
+    moves))
 
 ;; TODO move-piece
 ;; TODO locations-of-color
