@@ -1,4 +1,5 @@
 
+(load "utility.lisp")
 
 (defmacro time-code (&body body)
   (let ((start-time (gensym "start"))
@@ -52,6 +53,14 @@
            :on-move :white
            :turn 0
            :history ()))
+
+(defmacro x (coord) `(car ,coord))
+
+(defmacro y (coord) `(cdr ,coord))
+
+(defmacro from (move) `(car ,move))
+
+(defmacro to (move) `(cdr ,move))
 
 (defmacro piece-color (piece)
   `(when ,piece (aref *piece-color* (char-int ,piece))))
@@ -193,6 +202,41 @@
                   (setf moves (move-list board coord moves))))))
     moves))
 
+(defun update-location-raw (board coord piece)
+  (setf (char (aref board (y coord)) (x coord)) piece))
+
+(defun update-location (board coord piece history)
+  (let ((old-piece (raw-piece-at board coord)))
+    (setf (char (aref board (y coord)) (x coord)) piece)
+    (cons (cons coord old-piece) history)))
+
+(defun promote-pawns (board history) history)
+
+(defun apply-move (state move)
+  (let* ((board (getf state :board))
+         (history nil)
+         (from-piece (raw-piece-at board (from move))))
+    (setf history (update-location board (from move) #\. history))
+    (setf history (update-location board (to move) from-piece history))
+    (setf (getf state :history) (cons history (getf state :history)))
+    (setf (getf state :on-move) (opp-color (getf state :on-move)))
+    ;;Needs to promote pawns here
+    (when (eql (getf state :on-move) :white)
+      (setf (getf state :turn) (+ 1 (getf state :turn))))
+    state))
+
+(defun undo-move (state)
+  (let ((board (getf state :board))
+        (history (car (getf state :history))))
+    (when (not history) (return-from undo-move state))
+    (setf (getf state :on-move) (opp-color (getf state :on-move)))
+    (dolist (old-move history)
+      (update-location-raw board (car old-move) (cdr old-move)))
+    (when (eql (getf state :on-move) :black)
+      (setf (getf state :turn) (- (getf state :turn) 1)))
+    (setf (getf state :history) (cdr (getf state :history)))
+    state))
+
 (defun hash-state (state)
   "In a completely un-threadsafe way get the hash of the state without its history"
   (let ((temp-history (getf state :history)))
@@ -200,45 +244,6 @@
     (let ((hash (sxhash state)))
       (setf (getf state :history) temp-history)
       hash)))
-
-(defmacro memoize (fn-name hash-fn)
-  (let ((old-function (gensym "old-function"))
-        (new-function (gensym "new-function"))
-        (state-arg (gensym "state-arg"))
-        (value-cache (gensym "value-cache"))
-        (cache-size (gensym "cache-size"))
-        (not-found (gensym "not-found"))
-        (hash (gensym "hash"))
-        (cached-value (gensym "cached-value"))
-        (new-value (gensym "new-value")))
-    `(let* ((,old-function (fdefinition ',fn-name))
-            (,cache-size *default-cache-size*)
-            (,value-cache (make-array ,cache-size :initial-element ',not-found))
-            (,new-function (lambda (,state-arg)
-                             (let* ((,hash (mod (funcall ,hash-fn ,state-arg) ,cache-size))
-                                    (,cached-value (aref ,value-cache ,hash)))
-                               (if (eql ',not-found ,cached-value)
-                                   (let ((,new-value (funcall ,old-function ,state-arg)))
-                                     (setf (aref ,value-cache ,hash) ,new-value)
-                                     ,new-value)
-                                   ,cached-value)))))
-       (setf (fdefinition ',fn-name) ,new-function))))
-
-(defmacro lazy-memoization (fn-name)
-  (let ((old-function (gensym "old-function"))
-        (new-function (gensym "new-function"))
-        (state-arg (gensym "state-arg"))
-        (value-cache (gensym "value-cache"))
-        (new-value (gensym "new-value")))
-    `(let* ((,old-function (fdefinition ',fn-name))
-            (,value-cache (make-hash-table :test 'equal))
-            (,new-function (lambda (&rest ,state-arg)
-                             (if (not (nth-value 1 (gethash ,state-arg ,value-cache)))
-                                 (let ((,new-value (apply ,old-function ,state-arg)))
-                                   (setf (gethash ,state-arg ,value-cache) ,new-value)
-                                   ,new-value)
-                                 (gethash ,state-arg ,value-cache)))))
-       (setf (fdefinition ',fn-name) ,new-function))))
 
 (defun game-status (state)
   ;; Stealing whoppers way of checking for kings here :)
@@ -257,6 +262,8 @@
       ((not black-king) :white)
       ((= 0 (length (possible-moves state))) :tie)
       (T :ongoing))))
+
+;;Heuristic stuff
 
 (defun piece-points (state)
   (let ((board (getf state :board))
@@ -280,3 +287,9 @@
 
 (lazy-memoization game-status)
 (lazy-memoization score)
+
+(defparameter *node-counter 0)
+
+;;(defun negamax-inner (state hueristic prune depth counter best))
+
+;;(defun negamax (state hueristic prune depth))
