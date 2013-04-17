@@ -174,6 +174,24 @@
                   (setf moves (move-list board coord moves))))))
     moves))
 
+(defun hash-state (state)
+  "In a completely un-threadsafe way get the hash of the state without its history"
+  (let ((temp-history (getf state :history)))
+    (setf (getf state :history) nil)
+    (let ((hash (sxhash state)))
+      (setf (getf state :history) temp-history)
+      hash)))
+
+(defmacro meow-on-call (fn-name)
+  (let ((blah (gensym))
+        (fn-thing (gensym))
+        (things (gensym)))
+    `(let* ((,fn-thing (fdefinition ',fn-name))
+            (,blah (lambda (&rest ,things)
+                     (print "mew")
+                     (apply ,fn-thing ,things))))
+       (setf (fdefinition ',fn-name) ,blah))))
+
 (defun game-status (state)
   ;; Stealing whoppers way of checking for kings here :)
   (let ((white-king nil)
@@ -192,5 +210,6 @@
       ((= 0 (length (possible-moves state))) :tie)
       (T :ongoing))))
 
+;;(meow-on-call game-status)
+
 ;; TODO move-piece
-;; TODO locations-of-color
