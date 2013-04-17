@@ -75,9 +75,8 @@
   (not (and (valid-landing-p board color coord T)
             (valid-landing-p board color coord nil))))
 
-(defun move-scan (board coord coord-d capture require-capture max-manhat)
-  (let ((moves ())
-        (cur-coord (add-coord coord coord-d))
+(defun move-scan (moves board coord coord-d capture require-capture max-manhat)
+  (let ((cur-coord (add-coord coord coord-d))
         (color (color-at board coord)))
     (loop while (and (in-bounds-p cur-coord)
                      (<= (manhat coord cur-coord) max-manhat)) do
@@ -91,6 +90,66 @@
                  (setf moves (cons (cons coord cur-coord) moves))))
            (setf cur-coord (add-coord cur-coord coord-d))))
     moves))
+
+(defun mover (action directions moves)
+  (reduce action directions :initial-value moves))
+
+(defgeneric inner-move-list (board coord moves piece-class))
+(defmethod inner-move-list (board coord moves piece-class) nil)
+
+(defmethod inner-move-list (board coord moves (piece-class (eql #\N)))
+  (mover (lambda (moves direction)
+           (move-scan moves board coord direction T nil 3))
+         '((-1 . 2) (1 . 2)   (2 . 1)   (2 . -1)
+           (1 . -2) (-1 . -2) (-2 . -1) (-2 . 1)) moves))
+
+(defmethod inner-move-list (board coord moves (piece-class (eql #\R)))
+  (mover (lambda (moves direction)
+           (move-scan moves board coord direction T nil 99))
+         '((1 . 0) (-1 . 0) (0 . 1) (0 . -1)) moves))
+
+(defmethod inner-move-list (board coord moves (piece-class (eql #\Q)))
+  (mover (lambda (moves direction)
+           (move-scan moves board coord direction T nil 99))
+         '((-1 . 1) (0 . 1) (1 . 1)
+           (-1 . 0)         (1 . 0)
+           (-1 . -1)(0 . -1)(1 . -1)) moves))
+
+(defmethod inner-move-list (board coord moves (piece-class (eql #\K)))
+  (let ((moves moves))
+    (setf moves (mover (lambda (moves direction)
+                         (move-scan moves board coord direction T nil 1))
+                       '((1 . 0) (-1 . 0) (0 . 1) (0 . -1)) moves))
+    (setf moves (mover (lambda (moves direction)
+                         (move-scan moves board coord direction T nil 2))
+                       '((-1 . -1) (1 . -1) (-1 . 1) (1 . 1)) moves))
+    moves))
+
+(defmethod inner-move-list (board coord moves (piece-class (eql #\B)))
+  (let ((moves moves))
+    (setf moves (mover (lambda (moves direction)
+                         (move-scan moves board coord direction T nil 99))
+                       '((-1 . -1) (1 . -1) (-1 . 1) (1 . 1)) moves))
+    (setf moves (mover (lambda (moves direction)
+                         (move-scan moves board coord direction nil nil 1))
+                       '((1 . 0) (-1 . 0) (0 . 1) (0 . -1)) moves))
+    moves))
+
+(defmethod inner-move-list (board coord moves (piece-class (eql #\P)))
+  (let ((color (color-at board coord))
+        (moves moves))
+    (setf moves (mover (lambda (moves direction)
+                         (move-scan moves board coord direction nil nil 1))
+                       (if (eql color :white) '((0 . -1)) '((0 . 1))) moves))
+    (setf moves (mover (lambda (moves direction)
+                         (move-scan moves board coord direction nil nil 1))
+                       (if (eql color :white)
+                           '((1 . -1) (-1 . -1))
+                           '((1 . 1) (-1 . 1))) moves))
+    moves))
+
+(defun move-list (board coord moves)
+  (inner-move-list board coord moves (piece-class (piece-at board coord))))
 
 ;; TODO move-piece
 ;; TODO locations-of-color
