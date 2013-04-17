@@ -210,7 +210,16 @@
     (setf (char (aref board (y coord)) (x coord)) piece)
     (cons (cons coord old-piece) history)))
 
-(defun promote-pawns (board history) history)
+(defun promote-pawns (board history)
+  (let ((history history))
+    (dolist (y '(0 5))
+      (loop for x from 0 to 4 do
+           (let* ((coord (cons x y))
+                 (piece (raw-piece-at board coord)))
+             (cond
+               ((eql piece #\p) (setf history (update-location board coord #\q history)))
+               ((eql piece #\P) (setf history (update-location board coord #\P history)))))))
+    history))
 
 (defun apply-move (state move)
   (let* ((board (getf state :board))
@@ -218,9 +227,9 @@
          (from-piece (raw-piece-at board (from move))))
     (setf history (update-location board (from move) #\. history))
     (setf history (update-location board (to move) from-piece history))
+    (setf history (promote-pawns board history))
     (setf (getf state :history) (cons history (getf state :history)))
     (setf (getf state :on-move) (opp-color (getf state :on-move)))
-    ;;Needs to promote pawns here
     (when (eql (getf state :on-move) :white)
       (setf (getf state :turn) (+ 1 (getf state :turn))))
     state))
