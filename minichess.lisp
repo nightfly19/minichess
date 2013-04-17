@@ -22,10 +22,19 @@
       (setf (aref new-piece-color (char-int piece)) :black))
     new-piece-color))
 
+(defparameter *piece-value*
+  (let ((new-piece-value
+         (make-array 255 :initial-element 0)))
+    (dolist (piece '((#\K #\k 10000) (#\Q #\q 900) (#\R #\r 500) (#\N #\n 300) (#\B #\b 300) (#\P #\p 100)))
+      (setf (aref new-piece-value (char-int (nth 0 piece))) (nth 2 piece))
+      (setf (aref new-piece-value (char-int (nth 1 piece))) (-(nth 2 piece))))
+    new-piece-value)
+  "Warning!!! This is non intuative!!!")
+
 (defparameter *piece-class*
   (let ((new-piece-class
          (make-array 255 :initial-element nil)))
-    (dolist (piece '((#\K . #\k) (#\Q . #\a) (#\B . #\b) (#\N . #\n) (#\R . #\r) (#\P . #\p)))
+    (dolist (piece '((#\K . #\k) (#\Q . #\q) (#\B . #\b) (#\N . #\n) (#\R . #\r) (#\P . #\p)))
       (setf (aref new-piece-class (char-int (car piece))) (car piece))
       (setf (aref new-piece-class (char-int (cdr piece))) (car piece)))
     new-piece-class))
@@ -50,11 +59,18 @@
 (defmacro piece-class (piece)
   `(when ,piece (aref *piece-class* (char-int ,piece))))
 
+(defmacro piece-value (piece)
+  "Warning!!! This is non-intuative"
+  `(aref *piece-value* (char-int ,piece)))
+
 (defun in-bounds-p (coord)
   (and (>= (car coord) 0)
        (<= (car coord) 4)
        (>= (cdr coord) 0)
        (<= (cdr coord) 5)))
+
+(defun raw-piece-at (board coord)
+  (char (aref board (cdr coord)) (car coord)))
 
 (defun piece-at (board coord)
   (let ((piece (char (aref board (cdr coord)) (car coord))))
@@ -215,9 +231,9 @@
         (value-cache (gensym "value-cache"))
         (new-value (gensym "new-value")))
     `(let* ((,old-function (fdefinition ',fn-name))
-            (,value-cache (make-hash-table))
+            (,value-cache (make-hash-table :test 'equal))
             (,new-function (lambda (&rest ,state-arg)
-                             (if (nth-value 1 (gethash ,state-arg ,value-cache))
+                             (if (not (nth-value 1 (gethash ,state-arg ,value-cache)))
                                  (let ((,new-value (apply ,old-function ,state-arg)))
                                    (setf (gethash ,state-arg ,value-cache) ,new-value)
                                    ,new-value)
@@ -242,7 +258,25 @@
       ((= 0 (length (possible-moves state))) :tie)
       (T :ongoing))))
 
-;;(memoize game-status #'hash-state)
-(lazy-memoization game-status)
+(defun piece-points (state)
+  (let ((board (getf state :board))
+        (score 0))
+    (loop for y from 0 to 5 do
+         (loop for x from 0 to 4 do
+              (setf score (+ score (piece-value (raw-piece-at board (cons x y)))))))
+    (if (eql :white (getf state :on-move))
+        score
+        (- score))))
 
-;; TODO move-piece
+(defun score (state)
+  (let* ((points (piece-points state))
+         (status (game-status state)))
+    (cond
+      ((eql :draw status) 0)
+      ((eql :ongoing status) points)
+      (T (if (eql (getf state :on-move) status)
+             10000
+             10000)))))
+
+(lazy-memoization game-status)
+(lazy-memoization score)
