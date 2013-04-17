@@ -1,4 +1,5 @@
 
+
 (defmacro time-code (&body body)
   (let ((start-time (gensym "start"))
         (output (gensym "output"))
@@ -9,6 +10,8 @@
        (format T "~A~%" (/ (float (- ,end-time ,start-time))
                            internal-time-units-per-second))
        ,output)))
+
+(defparameter *default-cache-size* (expt 2 24))
 
 (defparameter *piece-color*
   (let ((new-piece-color
@@ -182,15 +185,28 @@
       (setf (getf state :history) temp-history)
       hash)))
 
-(defmacro meow-on-call (fn-name)
-  (let ((blah (gensym))
-        (fn-thing (gensym))
-        (things (gensym)))
-    `(let* ((,fn-thing (fdefinition ',fn-name))
-            (,blah (lambda (&rest ,things)
-                     (print "mew")
-                     (apply ,fn-thing ,things))))
-       (setf (fdefinition ',fn-name) ,blah))))
+(defmacro memoize-on-state (fn-name)
+  (let ((old-function (gensym "old-function"))
+        (new-function (gensym "new-function"))
+        (state-arg (gensym "state-arg"))
+        (value-cache (gensym "value-cache"))
+        (cache-size (gensym "cache-size"))
+        (not-found (gensym "not-found"))
+        (hash (gensym "hash"))
+        (cached-value (gensym "cached-value"))
+        (new-value (gensym "new-value")))
+    `(let* ((,old-function (fdefinition ',fn-name))
+            (,cache-size *default-cache-size*)
+            (,value-cache (make-array ,cache-size :initial-element ',not-found))
+            (,new-function (lambda (,state-arg)
+                             (let* ((,hash (mod (hash-state ,state-arg) ,cache-size))
+                                    (,cached-value (aref ,value-cache ,hash)))
+                               (if (eql ',not-found ,cached-value)
+                                   (let ((,new-value (funcall ,old-function ,state-arg)))
+                                     (setf (aref ,value-cache ,hash) ,new-value)
+                                     ,new-value)
+                                   ,cached-value)))))
+       (setf (fdefinition ',fn-name) ,new-function))))
 
 (defun game-status (state)
   ;; Stealing whoppers way of checking for kings here :)
@@ -210,6 +226,6 @@
       ((= 0 (length (possible-moves state))) :tie)
       (T :ongoing))))
 
-;;(meow-on-call game-status)
+(memoize-on-state game-status)
 
 ;; TODO move-piece
