@@ -8,4 +8,4 @@ script:
  
 # configure notifications (email, IRC, campfire etc)
 notifications:
-  irc: "irc.cat.pdx.edu#sage-test"
+  irc: "irc.cat.pdx.edu#cs442"
