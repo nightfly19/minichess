@@ -1,11 +1,11 @@
 
-(ql:quickload :lisp-unit)
+;;(ql:quickload :lisp-unit)
 
-;;(declaim (optimize speed))
+(declaim (optimize speed))
 
 (defpackage :elo100
-  (:use #:common-lisp
-        #:lisp-unit))
+  (:use #:common-lisp))
+;;        #:lisp-unit))
 
 (in-package :elo100)
 
@@ -13,7 +13,7 @@
 
 (defparameter *piece-color*
   (let ((new-piece-color
-         (make-array 255 :initial-element nil)))
+         (make-array 255 :initial-element nil :element-type '(or null keyword))))
     (dolist (piece '(#\K #\Q #\B #\N #\R #\P))
       (setf (aref new-piece-color (char-int piece)) :white))
     (dolist (piece '(#\k #\q #\b #\n #\r #\p))
@@ -22,7 +22,7 @@
 
 (defparameter *piece-value*
   (let ((new-piece-value
-         (make-array 255 :initial-element 0)))
+         (make-array 255 :initial-element 0 :element-type 'fixnum)))
     (dolist (piece '((#\K #\k 20000) (#\Q #\q 900) (#\R #\r 500) (#\N #\n 300) (#\B #\b 300) (#\P #\p 100)))
       (setf (aref new-piece-value (char-int (nth 0 piece))) (nth 2 piece))
       (setf (aref new-piece-value (char-int (nth 1 piece))) (- (nth 2 piece))))
@@ -53,7 +53,6 @@
 
 (defparameter *node-counter* 0)
 (defparameter *win-threshold* 10000)
-(defparameter *lose-threshold* -10000)
 (defparameter *state* (new-state))
 (defparameter *game-status* :ongoing)
 (defparameter *score* 0)
@@ -68,30 +67,20 @@
 
 (defmacro to (move) `(cdr ,move))
 
-;; (defmacro piece-color (piece)
-;;   `(when ,piece (aref *piece-color* (char-int ,piece))))
-
-;; (defmacro piece-class (piece)
-;;   `(when ,piece (aref *piece-class* (char-int ,piece))))
-
-;; (defmacro piece-value (piece)
-;;   "Warning!!! This is non-intuative"
-;;   `(aref *piece-value* (char-int ,piece)))
-
-;;(defun in-bounds-p (coord)
-;;  (and (>= (car coord) 0)
-;;       (<= (car coord) 4)
-;;       (>= (cdr coord) 0)
-;;       (<= (cdr coord) 5)))
-
 (defun piece-color (piece)
+  (declare (type simple-vector *piece-color*)
+           (values (or null keyword)))
   (aref *piece-color* (char-int piece)))
 
 (defun piece-class (piece)
+  (declare (type simple-vector *piece-class*)
+           (values standard-char))
   (aref *piece-class* (char-int piece)))
 
 (defun piece-value (piece)
   "Warning!!! This is non-intuative"
+  (declare (type (simple-array fixnum) *piece-value*)
+           (values fixnum))
   (aref *piece-value* (char-int piece)))
 
 (defmacro in-bounds-p (coord)
@@ -100,17 +89,18 @@
         (>= (y ,coord) 0)
         (<= (y ,coord) 5)))
 
-(defmacro d-in-bounds-p (x y)
-  `(and (>= ,x 0)
-        (<= ,x 4)
-        (>= ,y 0)
-        (<= ,y 5)))
+(defun d-in-bounds-p (x y)
+  (declare (type fixnum x y))
+  (and (>= x 0)
+       (<= x 4)
+       (>= y 0)
+       (<= y 5)))
 
 (defmacro raw-piece-at (board coord)
   `(char (aref ,board (y ,coord)) (x ,coord)))
 
-(defmacro d-raw-piece-at (board x y)
-  `(char (aref ,board ,y) ,x))
+(defun d-raw-piece-at (board x y)
+  (char (aref board y) x))
 
 (defun piece-at (board coord)
   (let ((piece (raw-piece-at board coord)))
@@ -131,6 +121,8 @@
      (abs (- (y coord-a) (y coord-b)))))
 
 (defun d-manhat (x-a y-a x-b y-b)
+  (declare (type fixnum x-a y-a x-b y-b)
+           (values fixnum))
   (+ (abs (- x-a x-b))
      (abs (- y-a y-b))))
 
@@ -146,6 +138,7 @@
         (cur-y (y coord))
         (d-x (x coord-d))
         (d-y (y coord-d)))
+    (declare (type fixnum cur-x d-x cur-y d-y o-x o-y max-manhat))
     (setf cur-x (+ cur-x d-x))
     (setf cur-y (+ cur-y d-y))
     (loop while (and keep-searching
@@ -229,6 +222,7 @@
   (let ((board (getf *state* :board))
         (color (getf *state* :on-move))
         (moves ()))
+    (declare (type (simple-vector 6) board))
     (loop for y from 0 to 5 do
          (let ((row (aref board y)))
            (loop for x from 0 to 4 do
@@ -252,6 +246,7 @@
     (cons (cons (cons x y) old-piece) history)))
 
 (defun promote-pawns (board history)
+  (declare (type (simple-vector 6) board))
   (let ((history history))
     (dolist (y '(0 5))
       (let ((row (aref board y)))
@@ -290,6 +285,7 @@
       state)))
 
 (defun game-status ()
+  (declare (type cons *possible-moves*))
   ;; Stealing whoppers way of checking for kings here :)
   (let ((white-king nil)
         (black-king nil)
@@ -309,6 +305,7 @@
 (defun piece-points (state)
   (let ((board (getf state :board))
         (score 0))
+    (declare (type fixnum score))
     (loop for y from 0 to 5 do
          (loop for x from 0 to 4 do
               (setf score (+ score (piece-value (raw-piece-at board (cons x y)))))))
@@ -364,19 +361,20 @@
       (destructuring-bind (best-move alpha beta) (cons nil ab)
         (dolist (possible-move *possible-moves*)
           (when (not (and prune (> alpha beta)))
-              (with-move possible-move heuristic
-                (destructuring-bind (possible-alpha possible-beta)
-                    (negate-negamax (negamax-inner
-                                     heuristic prune (- depth 1) (invert-negamax (list alpha beta))))
-                  (when (> possible-alpha alpha)
-                    (setf alpha possible-alpha)
-                    (setf best-move possible-move))
-                  (when (> possible-beta beta)
-                    (setf beta possible-beta))))))
+            (with-move possible-move heuristic
+              (destructuring-bind (possible-alpha possible-beta)
+                  (negate-negamax (negamax-inner
+                                   heuristic prune (- depth 1) (invert-negamax (list alpha beta))))
+                (when (> possible-alpha alpha)
+                  (setf alpha possible-alpha)
+                  (setf best-move possible-move))
+                (when (> possible-beta beta)
+                  (setf beta possible-beta))))))
         (values (list alpha beta) best-move))))
 
 (defun negamax (state heuristic prune depth)
   (with-state state heuristic
     (let* ((*node-counter* 0)
-           (move (nth-value 1 (negamax-inner heuristic prune depth (list (- *lose-threshold* 1) (+ 1 *win-threshold*))))))
+           (move (nth-value 1 (negamax-inner heuristic prune depth (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
       (values move *node-counter*))))
+
