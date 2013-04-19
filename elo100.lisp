@@ -4,3 +4,4 @@
 (load "package.lisp")
 (load "minichess.lisp")
 (load "bot.lisp")
+(load "tests.lisp")

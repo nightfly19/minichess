@@ -1,5 +1,11 @@
 language: common lisp
 
+install:
+ - sudo apt-get install -y sbcl cl-quicklisp
+
+script:
+ - ./test
+ 
 # configure notifications (email, IRC, campfire etc)
 notifications:
   irc: "irc.cat.pdx.edu#sage-test"

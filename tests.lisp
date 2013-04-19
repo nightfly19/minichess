@@ -62,6 +62,12 @@
                 (equalp move pos-move))) move-list :initial-value nil))
 
 (define-test fucking-test)
+
+(defun run-unit-tests ()
+  (let ((results (lisp-unit:run-tests :all :elo100)))
+    (sb-ext:quit :unix-status (+ (length (error-tests results))
+                                 (length (failed-tests results))))))
+
 ;;   (setf *state* (new-state))
 ;;   (setf *state-history* nil)
 ;;   (apply-move *state* '((1 . 1) 3 . 3))
