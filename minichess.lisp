@@ -1,6 +1,8 @@
 
 (ql:quickload :lisp-unit)
 
+;;(declaim (optimize speed))
+
 (defpackage :elo100
   (:use #:common-lisp
         #:lisp-unit))
@@ -35,9 +37,6 @@
       (setf (aref new-piece-class (char-int (cdr piece))) (car piece)))
     new-piece-class))
 
-(defparameter *node-counter* 0)
-(defparameter *win-threshold* 10000)
-(defparameter *lose-threshold* -10000)
 
 (defun new-board ()
   (copy-seq `#(,(copy-seq "kqbnr")
@@ -52,7 +51,13 @@
                       :on-move :white
                       :turn 0)))
 
+(defparameter *node-counter* 0)
+(defparameter *win-threshold* 10000)
+(defparameter *lose-threshold* -10000)
 (defparameter *state* (new-state))
+(defparameter *game-status* :ongoing)
+(defparameter *score* 0)
+(defparameter *possible-moves* nil)
 (defparameter *state-history* nil)
 
 (defmacro x (coord) `(car ,coord))
@@ -96,10 +101,10 @@
         (<= (y ,coord) 5)))
 
 (defmacro d-in-bounds-p (x y)
-  `(and (>= x 0)
-        (<= x 4)
-        (>= y 0)
-        (<= y 5)))
+  `(and (>= ,x 0)
+        (<= ,x 4)
+        (>= ,y 0)
+        (<= ,y 5)))
 
 (defmacro raw-piece-at (board coord)
   `(char (aref ,board (y ,coord)) (x ,coord)))
@@ -132,19 +137,21 @@
 (defun opp-color (color)
   (if (eql color :white) :black :white))
 
-;;Will be killeded
-(defun add-coord (coord-a coord-b)
-  (cons (+ (car coord-a) (car coord-b))
-        (+ (cdr coord-a) (cdr coord-b))))
-
 (defun move-scan (moves board color coord coord-d capture require-capture max-manhat)
-  (let ((cur-coord (add-coord coord coord-d))
-        (keep-searching T)
-        (moves moves))
+  (let ((keep-searching T)
+        (moves moves)
+        (o-x (x coord))
+        (o-y (y coord))
+        (cur-x (x coord))
+        (cur-y (y coord))
+        (d-x (x coord-d))
+        (d-y (y coord-d)))
+    (setf cur-x (+ cur-x d-x))
+    (setf cur-y (+ cur-y d-y))
     (loop while (and keep-searching
-                     (in-bounds-p cur-coord)
-                     (<= (manhat coord cur-coord) max-manhat)) do
-         (let ((piece (piece-at board cur-coord)))
+                     (d-in-bounds-p cur-x cur-y)
+                     (<= (d-manhat o-x o-y cur-x cur-y) max-manhat)) do
+         (let ((piece (d-piece-at board cur-x cur-y)))
            (if piece
                (progn
                  (cond
@@ -153,11 +160,11 @@
                    ((eql color (piece-color piece))
                     (setf keep-searching nil))
                    (T (setf keep-searching nil)
-                      (setf moves (cons (cons coord cur-coord) moves)))))
+                      (setf moves (cons (cons coord (cons cur-x cur-y)) moves)))))
                (when (not require-capture)
-                 (setf moves (cons (cons coord cur-coord) moves))
-                 )))
-         (setf cur-coord (add-coord cur-coord coord-d)))
+                 (setf moves (cons (cons coord (cons cur-x cur-y)) moves)))))
+         (setf cur-x (+ cur-x d-x))
+         (setf cur-y (+ cur-y d-y)))
     moves))
 
 (defun mover (action directions moves)
@@ -218,9 +225,9 @@
 (defun move-list (board coord moves)
   (inner-move-list board (color-at board coord) coord moves (piece-class (piece-at board coord))))
 
-(defun possible-moves (state)
-  (let ((board (getf state :board))
-        (color (getf state :on-move))
+(defun possible-moves ()
+  (let ((board (getf *state* :board))
+        (color (getf *state* :on-move))
         (moves ()))
     (loop for y from 0 to 5 do
          (let ((row (aref board y)))
@@ -255,8 +262,9 @@
                  ((eql piece #\P) (setf history (update-row row x y #\P history))))))))
     history))
 
-(defun apply-move (state move)
-  (let* ((board (getf state :board))
+(defun apply-move (move)
+  (let* ((state *state*)
+         (board (getf state :board))
          (history nil)
          (from-piece (raw-piece-at board (from move))))
     (setf history (update-location board (from move) #\. history))
@@ -268,37 +276,35 @@
       (setf (getf state :turn) (+ 1 (getf state :turn))))
     state))
 
-(defun undo-move (state)
-  (let ((board (getf state :board))
-        (history (car *state-history*)))
-    (when (not history) (return-from undo-move state))
-    (setf (getf state :on-move) (opp-color (getf state :on-move)))
-    (dolist (old-move history)
-      (update-location-raw board (car old-move) (cdr old-move)))
-    (when (eql (getf state :on-move) :black)
-      (setf (getf state :turn) (- (getf state :turn) 1)))
-    (setf *state-history* (cdr *state-history*))
-    state))
+(defun undo-move ()
+  (let* ((state *state*)
+         (board (getf state :board))
+         (history (car *state-history*)))
+    (when history
+      (setf (getf state :on-move) (opp-color (getf state :on-move)))
+      (dolist (old-move history)
+        (update-location-raw board (car old-move) (cdr old-move)))
+      (when (eql (getf state :on-move) :black)
+        (setf (getf state :turn) (- (getf state :turn) 1)))
+      (setf *state-history* (cdr *state-history*))
+      state)))
 
-(defun game-status (state)
+(defun game-status ()
   ;; Stealing whoppers way of checking for kings here :)
   (let ((white-king nil)
         (black-king nil)
-        (board (getf state :board)))
+        (board (getf *state* :board)))
     (loop for y from 0 to 5 do
          (loop for x from 0 to 4 do
               (let ((piece (piece-at board (cons x y))))
                 (cond
                   ((eql piece #\K) (setf white-king T))
                   ((eql piece #\k) (setf black-king T))))))
-
     (cond
       ((not white-king) :black)
       ((not black-king) :white)
-      ((= 0 (length (possible-moves state))) :tie)
+      ((= 0 (length *possible-moves*)) :tie)
       (T :ongoing))))
-
-;;Heuristic stuff
 
 (defun piece-points (state)
   (let ((board (getf state :board))
@@ -310,13 +316,13 @@
         score
         (- score))))
 
-(defun score (state)
-  (let* ((points (piece-points state))
-         (status (game-status state)))
+(defun score ()
+  (let* ((points (piece-points *state*))
+         (status *game-status*))
     (cond
       ((eql :draw status) 0)
       ((eql :ongoing status) points)
-      (T (if (eql (getf state :on-move) status)
+      (T (if (eql (getf *state* :on-move) status)
              10000
              10000)))))
 
@@ -333,34 +339,44 @@
     (loop for row from 0 to 5 do
          (format T "~A~%" (aref board row)))))
 
-(defun score-with-move (state heuristic move)
-  (apply-move state move)
-  (let ((scored (funcall heuristic state)))
-    (undo-move state)
-    scored))
+(defmacro with-move (move heuristic &body forms)
+  (let ((result (gensym "result")))
+    `(progn
+       (when ,move
+         (apply-move ,move))
+       (let* ((*possible-moves* (possible-moves))
+              (*game-status* (game-status))
+              (*score* (funcall ,heuristic))
+              (,result (multiple-value-list (progn ,@forms))))
+         (undo-move)
+         (values-list ,result)))))
 
-(defun negamax-inner (state hueristic prune depth ab)
+(defmacro with-state (state heuristic &body forms)
+  `(let ((*state* ,state)
+         (*state-history* nil))
+     (with-move nil ,heuristic ,@forms)))
+
+(defun negamax-inner (heuristic prune depth ab)
   (setf *node-counter* (+ 1 *node-counter*))
-  (if (or (not (eql :ongoing (game-status state)))
+  (if (or (not (eql :ongoing *game-status*))
           (<= depth 0))
-      (cons (funcall hueristic state) (cdr ab))
+      (cons *score* (cdr ab))
       (destructuring-bind (best-move alpha beta) (cons nil ab)
-        (dolist (possible-move (possible-moves state))
-          (when (or (not prune) (> alpha beta))
-            (apply-move state possible-move)
-            (destructuring-bind (possible-alpha possible-beta)
-                (negate-negamax (negamax-inner
-                                 state hueristic prune (- depth 1) (invert-negamax (list alpha beta))))
-              (when (> possible-alpha alpha)
-                (setf alpha possible-alpha)
-                (setf best-move possible-move))
-              (when (> possible-beta beta)
-                (setf beta possible-beta)))
-            (undo-move state)))
+        (dolist (possible-move *possible-moves*)
+          (when (not (and prune (> alpha beta)))
+              (with-move possible-move heuristic
+                (destructuring-bind (possible-alpha possible-beta)
+                    (negate-negamax (negamax-inner
+                                     heuristic prune (- depth 1) (invert-negamax (list alpha beta))))
+                  (when (> possible-alpha alpha)
+                    (setf alpha possible-alpha)
+                    (setf best-move possible-move))
+                  (when (> possible-beta beta)
+                    (setf beta possible-beta))))))
         (values (list alpha beta) best-move))))
 
-(defun negamax (state hueristic prune depth)
-  (let* ((*node-counter* 0)
-         (move (nth-value 1 (negamax-inner state hueristic prune depth (list (- *lose-threshold* 1) (+ 1 *win-threshold*))))))
-    (values move *node-counter*)))
-
+(defun negamax (state heuristic prune depth)
+  (with-state state heuristic
+    (let* ((*node-counter* 0)
+           (move (nth-value 1 (negamax-inner heuristic prune depth (list (- *lose-threshold* 1) (+ 1 *win-threshold*))))))
+      (values move *node-counter*))))
