@@ -1,5 +1,5 @@
-language: clojure
+language: common lisp
 
 # configure notifications (email, IRC, campfire etc)
 notifications:
-  irc: "irc.cat.pdx.edu#cs442"
+  irc: "irc.cat.pdx.edu#sage-test"
