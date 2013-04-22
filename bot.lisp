@@ -29,24 +29,24 @@
   (list (* -1 (cadr ab))
         (* -1 (car ab))))
 
-(defmacro with-move (move heuristic &body forms)
+(defmacro with-move (move &body forms)
   (let ((result (gensym "result")))
     `(progn
        (when ,move
          (apply-move ,move))
        (let* ((*possible-moves* (possible-moves))
               (*game-status* (game-status))
-              (*score* (funcall ,heuristic))
+              (*score* (funcall *heuristic*))
               (,result (multiple-value-list (progn ,@forms))))
          (undo-move)
          (values-list ,result)))))
 
-(defmacro with-state (state heuristic &body forms)
+(defmacro with-state (state &body forms)
   `(let ((*state* ,state)
          (*state-history* nil))
-     (with-move nil ,heuristic ,@forms)))
+     (with-move nil ,@forms)))
 
-(defun negamax-inner (heuristic prune depth ab)
+(defun negamax-inner (prune depth ab)
   (setf *node-counter* (+ 1 *node-counter*))
   (if (or (not (eql :ongoing *game-status*))
           (<= depth 0))
@@ -54,10 +54,9 @@
       (destructuring-bind (best-move alpha beta) (cons nil ab)
         (dolist (possible-move *possible-moves*)
           (when (not (and prune (> alpha beta)))
-            (with-move possible-move heuristic
+            (with-move possible-move
               (destructuring-bind (possible-alpha possible-beta)
-                  (negate-negamax (negamax-inner
-                                   heuristic prune (- depth 1) (invert-negamax (list alpha beta))))
+                  (negate-negamax (negamax-inner prune (- depth 1) (invert-negamax (list alpha beta))))
                 (when (> possible-alpha alpha)
                   (setf alpha possible-alpha)
                   (setf best-move possible-move))
@@ -68,5 +67,6 @@
 (defun negamax (state heuristic prune depth)
   (with-state state heuristic
     (let* ((*node-counter* 0)
-           (move (nth-value 1 (negamax-inner heuristic prune depth (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
+           (*heuristic* heuristic)
+           (move (nth-value 1 (negamax-inner prune depth (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
       (values move *node-counter*))))

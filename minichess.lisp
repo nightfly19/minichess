@@ -51,6 +51,7 @@
 (defparameter *score* 0)
 (defparameter *possible-moves* nil)
 (defparameter *state-history* nil)
+(defparameter *heuristic* (constantly 0))
 
 (defmacro x (coord) `(car ,coord))
 
@@ -294,8 +295,3 @@
       ((not black-king) :white)
       ((= 0 (length *possible-moves*)) :tie)
       (T :ongoing))))
-
-(defun print-state (state)
-  (let ((board (getf state :board)))
-    (loop for row from 0 to 5 do
-         (format T "~A~%" (aref board row)))))
