@@ -1,6 +1,0 @@
-#!/bin/sh
-
-sbcl --disable-debugger \
-    --load ./.bootstrap-test.lisp \
-    --load ./elo100.lisp \
-    --eval '(elo100::run-unit-tests)'
