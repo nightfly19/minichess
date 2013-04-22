@@ -31,7 +31,7 @@
     new-piece-class))
 
 
-(defun new-board ()
+(defun make-board ()
   (copy-seq `#(,(copy-seq "kqbnr")
                ,(copy-seq "ppppp")
                ,(copy-seq ".....")
@@ -39,14 +39,14 @@
                ,(copy-seq "PPPPP")
                ,(copy-seq "RNBQK"))))
 
-(defun new-state ()
+(defun make-state ()
   (copy-list `(:board ,(new-board)
                       :on-move :white
                       :turn 0)))
 
 (defparameter *node-counter* 0)
 (defparameter *win-threshold* 10000)
-(defparameter *state* (new-state))
+(defparameter *state* (make-state))
 (defparameter *game-status* :ongoing)
 (defparameter *score* 0)
 (defparameter *possible-moves* nil)
@@ -293,5 +293,6 @@
     (cond
       ((not white-king) :black)
       ((not black-king) :white)
-      ((= 0 (length *possible-moves*)) :draw)
+      ((= 0 (length *possible-moves*)) (opp-color (getf *state* :on-move)))
+      ((> (getf *state* :turn) 40) :draw)
       (T :ongoing))))
