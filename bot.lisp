@@ -19,7 +19,7 @@
       ((eql :ongoing status) points)
       (T (if (eql (getf *state* :on-move) status)
              10000
-             10000)))))
+             -10000)))))
 
 (defun negate-negamax (ab)
   (list (* -1 (car ab))

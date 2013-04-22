@@ -293,5 +293,5 @@
     (cond
       ((not white-king) :black)
       ((not black-king) :white)
-      ((= 0 (length *possible-moves*)) :tie)
+      ((= 0 (length *possible-moves*)) :draw)
       (T :ongoing))))
