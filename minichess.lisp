@@ -40,7 +40,7 @@
                ,(copy-seq "RNBQK"))))
 
 (defun make-state ()
-  (copy-list `(:board ,(new-board)
+  (copy-list `(:board ,(make-board)
                       :on-move :white
                       :turn 0)))
 
@@ -296,3 +296,5 @@
       ((= 0 (length *possible-moves*)) (opp-color (getf *state* :on-move)))
       ((> (getf *state* :turn) 40) :draw)
       (T :ongoing))))
+
+ 
