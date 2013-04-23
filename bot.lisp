@@ -70,3 +70,7 @@
            (*heuristic* heuristic)
            (move (nth-value 1 (negamax-inner prune depth (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
       (values move *node-counter*))))
+
+
+(defun bot-move ()
+    (negamax *state* #'score T 4))

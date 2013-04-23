@@ -14,3 +14,11 @@
                  *game-status*)))
     (with-state (make-state) (innergame))))
 
+(defun play-random-game ()
+  (play-game #'random-move #'random-move))
+
+(defun play-bot-vs-random-game ()
+  (play-game #'bot-move #'random-move))
+
+(defun play-random-vs-bot-game ()
+  (play-game #'random-move #'bot-move))
