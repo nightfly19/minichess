@@ -100,11 +100,20 @@
     (with-move move
       (imcs-message-dispatcher))))
 
-(defmethod imcs-message ((toten (eql :|-|)) line)
+(defmethod imcs-message ((tolen (eql :|-|)) line)
   (print-line T line))
 
-(defmethod imcs-message ((toten (eql :|X|)) line)
+(defmethod imcs-message ((token (eql :|X|)) line)
   (print-line T "Opponant disconnected"))
+
+(defmethod imcs-message ((token (eql :|231|)) line)
+  (print-line T "White wins!"))
+
+(defmethod imcs-message ((token (eql :|232|)) line)
+  (print-line T "black wins!"))
+
+(defmethod imcs-message ((token (eql :|=|)) line)
+  (print-line T line))
 
 (defun imcs-session ()
   (let ((*imcs-stream* (get-imcs-server-stream))

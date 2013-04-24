@@ -73,4 +73,4 @@
 
 
 (defun bot-move ()
-    (negamax *state* #'score T 4))
+    (negamax *state* #'score T 6))
