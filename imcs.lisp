@@ -1,10 +1,10 @@
 (in-package :elo100)
 
-(defparameter *username* "elo100")
-(defparameter *password* "minichess")
-
+(defparameter *imcs-username* "elo100")
+(defparameter *imcs-password* "minichess")
 (defparameter *imcs-stream* T)
-(defparameter *imcs-player* (constantly nil))
+(defparameter *imcs-request-string* "")
+(defparameter *imcs-player* #'random-move)
 (defparameter *imcs-color* :white)
 
 (defun format-color-string (color)
@@ -21,84 +21,106 @@
 (defun print-line (stream line)
   (format stream "~A~C" line #\Newline))
 
-(defun imcs-login (stream)
-  ;; Assume username was accepted
-  (print-line T (read-line stream)))
+(defun discard-state-on-stream (stream)
+  (dotimes (i 9)
+    (format T "~A~%" (read-line stream)))
+  nil)
 
-(defgeneric imcs-code (number first-line &optional callback))
+(defun imcs-login ()
+  (print-line *imcs-stream* (format nil "me ~A ~A" *imcs-username* *imcs-password*)))
 
-(defun imcs-response-dispatcher (&optional callback)
-  (register-groups-bind (code first-line) ("^(\\d+)\\s+(.*)" (read-line *imcs-stream*))
-    (imcs-code (parse-integer code) first-line callback)))
+(defun imcs-register ()
+  (print-line *imcs-stream* (format nil "register ~A ~A" *imcs-username* *imcs-password*)))
 
-(defmethod imcs-code ((number T) first-line &optional callback)
-  (declare (ignore callback))
-  (format T "Unhandled: ~A ~A~%" number first-line))
+(defun imcs-send-request-string ()
+  (print-line *imcs-stream* *imcs-request-string*))
 
-(defmethod imcs-code ((number (eql 100)) first-line &optional callback)
-  (print-line T first-line)
-  (print-line *imcs-stream* (format nil "me ~A ~A~%" *username* *password*))
-  (let ((response (imcs-response-dispatcher)))
-    (when (eql response 201)
-      (if callback (funcall callback number first-line) T))))
+(defun imcs-message-dispatcher ()
+  (register-groups-bind (token first-line) ("^(\\S+)\\s+(.+)\\r$" (read-line *imcs-stream*))
+    (imcs-message (intern token "KEYWORD") first-line)))
 
+(defmethod imcs-message ((token T) message)
+  (format T "Unhandled: ~A ~A~%" token message)
+  (values token message))
 
-(defmethod imcs-code ((number (eql 103)) line &optional callback)
+(defmethod imcs-message ((token (eql :|100|)) message)
+  (print-line T message)
+  (imcs-login)
+  (imcs-message-dispatcher))
+
+(defmethod imcs-message ((token (eql :|400|)) message)
+  (print-line T "Unregistered nick")
+  (imcs-register)
+  (imcs-message-dispatcher))
+
+(defmethod imcs-message ((token (eql :|202|)) message)
+  "Successfully registered"
+  (print-line T message)
+  (imcs-send-request-string)
+  (imcs-message-dispatcher))
+
+(defmethod imcs-message ((token (eql :|201|)) message)
+  (print-line T message)
+  (imcs-send-request-string)
+  (imcs-message-dispatcher))
+;;  (multiple-value-bind (code message) (imcs-message-dispatcher)
+;;    (cond (eql :l
+
+(defmethod imcs-message ((token (eql :|103|)) line)
+  "Game waiting for acceptance"
   (print-line T line)
-  (if callback (funcall callback number line) number))
+  (imcs-message-dispatcher))
 
-(defmethod imcs-code ((number (eql 201)) first-line &optional callback)
-  (print-line T "Got hello")
-  (print callback)
-  (if callback (funcall callback number first-line) number))
-
-(defmethod imcs-code ((number (eql 105)) line &optional callback)
-  "game starts (on-move)"
+(defmethod imcs-message ((token (eql :|105|)) line)
+  "Game starts (on-move)"
+  (print-line T line)
   (setf *imcs-color* :white)
-  ;;read state
-  ;;read time-remaining ? 05:00.000 03:59.384
-  ;;game play here
+  (discard-state-on-stream *imcs-stream*)
+  (imcs-message-dispatcher))
 
-  ;;read mode ! e5-e4
-  (if callback (funcall callback number line) number))
-
-(defmethod imcs-code ((number (eql 106)) line &optional callback)
-  "game starts (not on-move)"
+(defmethod imcs-message ((token (eql :|106|)) line)
+  "Game starts"
+  (print-line T line)
+  ;;need to parse play time here
   (setf *imcs-color* :black)
-  (if callback (funcall callback number line) number))
+  (imcs-message-dispatcher))
 
-(defmethod imcs-code ((number (eql 230)) line &optional callback)
-  "draw"
-  (if callback (funcall callback number line) number))
+(defmethod imcs-message ((token (eql :|!|)) line)
+  (print-line T "Got a move :)")
+  (print-line T line)
+  (discard-state-on-stream *imcs-stream*)
+  (with-move (parse-move line)
+    (imcs-message-dispatcher)))
 
-(defmethod imcs-code ((number (eql 231)) line &optional callback)
-  "White wins"
-  (if callback (funcall callback number line) number))
+(defmethod imcs-message ((token (eql :|?|)) line)
+  (print-line T "Got a move time")
+  (let ((move (funcall *imcs-player*)))
+    (print-line *imcs-stream* (serialize-move move))
+    (format T "Moving: ~A~%" (serialize-move move))
+    (with-move move
+      (imcs-message-dispatcher))))
 
-(defmethod imcs-code ((number (eql 232)) line &optional callback)
-  "Black wins"
-  (if callback (funcall callback number line) number))
+(defmethod imcs-message ((toten (eql :|-|)) line)
+  (print-line T line))
 
-(defmethod imcs-code ((number (eql 401)) line &optional callback)
-  "Unknown password"
-  (if callback (funcall callback number line) number))
+(defmethod imcs-message ((toten (eql :|X|)) line)
+  (print-line T "Opponant disconnected"))
 
-(defgeneric imcs-play-message (token message))
-
-(defun imcs-session (callback)
+(defun imcs-session ()
   (let ((*imcs-stream* (get-imcs-server-stream))
         (*imcs-color* :white))
-    (imcs-response-dispatcher callback)))
+    (imcs-message-dispatcher)))
 
 (defun offer-game (&optional color (time "") (opp-time time))
-  (imcs-session (lambda (&rest rest)
-                  (declare (ignore rest))
-                  (format *imcs-stream* "offer ~A ~A ~A~%" (format-color-string color) time opp-time)
-                  (imcs-response-dispatcher
-                   (lambda (&rest rest) (imcs-response-dispatcher))))))
+  (with-state (make-state)
+    (let* ((*imcs-request-string*
+            (format nil "offer ~A ~A ~A" (format-color-string color) time opp-time))
+           (*imcs-player* #'bot-move))
+      (imcs-session))))
 
 (defun accept-game (game-id &optional (color ""))
-  (imcs-session (lambda (&rest rest)
-                  (declare (ignore rest))
-                  (format *imcs-stream* "accept ~A ~A~%" game-id (format-color-string color))
-                  (imcs-response-dispatcher))))
+  (with-state (make-state)
+    (let* ((*imcs-request-string*
+            (format nil "accept ~A ~A" game-id (format-color-string color)))
+           (*imcs-player* #'bot-move))
+      (imcs-session))))

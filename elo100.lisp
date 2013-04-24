@@ -6,5 +6,6 @@
 (load "minichess.lisp")
 (load "bot.lisp")
 (load "external.lisp")
+(load "play.lisp")
 (load "imcs.lisp")
 (load "tests.lisp")
