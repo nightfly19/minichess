@@ -86,25 +86,37 @@
   (imcs-message-dispatcher))
 
 (defmethod imcs-message ((token (eql :|!|)) line)
-  (print-line T "Got a move :)")
+  (format T "Got   : ~A~%" line)
   (print-line T line)
   (discard-state-on-stream *imcs-stream*)
   (with-move (parse-move line)
     (imcs-message-dispatcher)))
 
 (defmethod imcs-message ((token (eql :|?|)) line)
-  (print-line T "Got a move time")
+  (print-line T line)
   (let ((move (funcall *imcs-player*)))
     (print-line *imcs-stream* (serialize-move move))
     (format T "Moving: ~A~%" (serialize-move move))
     (with-move move
       (imcs-message-dispatcher))))
 
-(defmethod imcs-message ((toten (eql :|-|)) line)
+(defmethod imcs-message ((tolen (eql :|-|)) line)
   (print-line T line))
 
-(defmethod imcs-message ((toten (eql :|X|)) line)
+(defmethod imcs-message ((token (eql :|X|)) line)
   (print-line T "Opponant disconnected"))
+
+(defmethod imcs-message ((token (eql :|421|)) line)
+  (print-line T "Offers canceled"))
+
+(defmethod imcs-message ((token (eql :|231|)) line)
+  (print-line T "White wins!"))
+
+(defmethod imcs-message ((token (eql :|232|)) line)
+  (print-line T "black wins!"))
+
+(defmethod imcs-message ((token (eql :|=|)) line)
+  (print-line T line))
 
 (defun imcs-session ()
   (let ((*imcs-stream* (get-imcs-server-stream))
