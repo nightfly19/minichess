@@ -7,5 +7,5 @@ script:
  - make test
  
 # configure notifications (email, IRC, campfire etc)
-notifications:
-  irc: "irc.cat.pdx.edu#cs442"
+# notifications:
+#   irc: "irc.cat.pdx.edu#cs442"
