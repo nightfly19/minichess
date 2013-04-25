@@ -4,7 +4,7 @@
 (defparameter *imcs-password* "minichess")
 (defparameter *imcs-stream* T)
 (defparameter *imcs-request-string* "")
-(defparameter *imcs-player* #'random-move)
+(defparameter *imcs-player* (constantly nil))
 (defparameter *imcs-color* :white)
 
 (defun format-color-string (color)
@@ -34,6 +34,8 @@
 
 (defun imcs-send-request-string ()
   (print-line *imcs-stream* *imcs-request-string*))
+
+(defgeneric imcs-message (token message))
 
 (defun imcs-message-dispatcher ()
   (register-groups-bind (token first-line) ("^(\\S+)\\s+(.+)\\r$" (read-line *imcs-stream*))
@@ -124,14 +126,14 @@
     (imcs-message-dispatcher)))
 
 (defun offer-game (&optional color (time "") (opp-time time))
-  (with-state (make-game-state)
+  (with-state *clean-state*
     (let* ((*imcs-request-string*
             (format nil "offer ~A ~A ~A" (format-color-string color) time opp-time))
            (*imcs-player* #'bot-move))
       (imcs-session))))
 
 (defun accept-game (game-id &optional (color ""))
-  (with-state (make-game-state)
+  (with-state *clean-state*
     (let* ((*imcs-request-string*
             (format nil "accept ~A ~A" game-id (format-color-string color)))
            (*imcs-player* #'bot-move))

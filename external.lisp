@@ -1,19 +1,19 @@
 (in-package :elo100)
 
-(defparameter *ascii-table* (let ((table (make-array 255 :element-type 'character :initial-element #\Space)))
-                                    (setf (aref table 97) #\a)
-                                    (setf (aref table 98) #\b)
-                                    (setf (aref table 99) #\c)
-                                    (setf (aref table 100) #\d)
-                                    (setf (aref table 101) #\e)
-                                    table))
+;; (defparameter *ascii-table* (let ((table (make-array 255 :element-type 'character :initial-element #\Space)))
+;;                                     (setf (aref table 97) #\a)
+;;                                     (setf (aref table 98) #\b)
+;;                                     (setf (aref table 99) #\c)
+;;                                     (setf (aref table 100) #\d)
+;;                                     (setf (aref table 101) #\e)
+;;                                     table))
 
-(defun print-state (state)
-  (let ((board (game-state-board state)))
-    (format T "~%")
-    (format T "~A ~A~%" (if (eql :white (game-state-on-move state)) "W" "B") (game-state-turn state))
-    (loop for row from 0 to 5 do
-         (format T "~A~%" (aref board row)))))
+;; (defun print-state (state)
+;;   (let ((board (game-state-board state)))
+;;     (format T "~%")
+;;     (format T "~A ~A~%" (if (eql :white (game-state-on-move state)) "W" "B") (game-state-turn state))
+;;     (loop for row from 0 to 5 do
+;;          (format T "~A~%" (aref board row)))))
 
 (defun parse-coord (coord-string)
   (register-groups-bind (x y) ("^([a-e])(\\d)" coord-string)

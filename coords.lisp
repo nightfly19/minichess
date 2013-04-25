@@ -21,26 +21,6 @@
        (>= y 0)
        (<= y 5)))
 
-(defmacro raw-piece-at (board coord)
-  `(char (aref ,board (y ,coord)) (x ,coord)))
-
-(defun d-raw-piece-at (board x y)
-  (char (aref board y) x))
-
-(defun piece-at (board coord)
-  (let ((piece (raw-piece-at board coord)))
-    (when (not (eql #\. piece)) piece)))
-
-(defun d-piece-at (board x y)
-  (let ((piece (d-raw-piece-at board x y)))
-    (when (not (eql #\. piece)) piece)))
-
-(defun color-at (board coord)
-  (piece-color (raw-piece-at board coord)))
-
-(defun d-color-at (board x y)
-  (piece-color (d-raw-piece-at board x y)))
-
 (defun manhat (coord-a coord-b)
   (+ (abs (- (x coord-a) (x coord-b)))
      (abs (- (y coord-a) (y coord-b)))))

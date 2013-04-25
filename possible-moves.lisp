@@ -15,8 +15,8 @@
     (loop while (and keep-searching
                      (d-in-bounds-p cur-x cur-y)
                      (<= (d-manhat o-x o-y cur-x cur-y) max-manhat)) do
-         (let ((piece (d-piece-at board cur-x cur-y)))
-           (if piece
+         (let ((piece (piece-at board cur-x cur-y)))
+           (if (not (= piece 0))
                (progn
                  (cond
                    ((not capture)
@@ -37,25 +37,25 @@
 (defgeneric inner-move-list (board color coord moves piece-class))
 (defmethod inner-move-list (board color coord moves piece-class) moves)
 
-(defmethod inner-move-list (board color coord moves (piece-class (eql #\N)))
+(defmethod inner-move-list (board color coord moves (piece-class (eql +knight+)))
   (mover (lambda (moves direction)
            (move-scan moves board color coord direction T nil 3))
          '((-1 . 2) (1 . 2)   (2 . 1)   (2 . -1)
            (1 . -2) (-1 . -2) (-2 . -1) (-2 . 1)) moves))
 
-(defmethod inner-move-list (board color coord moves (piece-class (eql #\R)))
+(defmethod inner-move-list (board color coord moves (piece-class (eql +rook+)))
   (mover (lambda (moves direction)
            (move-scan moves board color coord direction T nil 99))
          '((1 . 0) (-1 . 0) (0 . 1) (0 . -1)) moves))
 
-(defmethod inner-move-list (board color coord moves (piece-class (eql #\Q)))
+(defmethod inner-move-list (board color coord moves (piece-class (eql +queen+)))
   (mover (lambda (moves direction)
            (move-scan moves board color coord direction T nil 99))
          '((-1 . 1) (0 . 1) (1 . 1)
            (-1 . 0)         (1 . 0)
            (-1 . -1)(0 . -1)(1 . -1)) moves))
 
-(defmethod inner-move-list (board color coord moves (piece-class (eql #\K)))
+(defmethod inner-move-list (board color coord moves (piece-class (eql +king+)))
   (let ((moves moves))
     (setf moves (mover (lambda (moves direction)
                          (move-scan moves board color coord direction T nil 1))
@@ -65,7 +65,7 @@
                        '((-1 . -1) (1 . -1) (-1 . 1) (1 . 1)) moves))
     moves))
 
-(defmethod inner-move-list (board color coord moves (piece-class (eql #\B)))
+(defmethod inner-move-list (board color coord moves (piece-class (eql +bishop+)))
   (let ((moves moves))
     (setf moves (mover (lambda (moves direction)
                          (move-scan moves board color coord direction T nil 99))
@@ -75,30 +75,27 @@
                        '((1 . 0) (-1 . 0) (0 . 1) (0 . -1)) moves))
     moves))
 
-(defmethod inner-move-list (board color coord moves (piece-class (eql #\P)))
-  (let ((color (color-at board coord)))
+(defmethod inner-move-list (board color coord moves (piece-class (eql +pawn+)))
+  (let ((color (color-at board (x coord) (y coord))))
     (mover (lambda (moves direction)
              (move-scan moves board color coord direction nil nil 1))
-           (if (eql color :white) '((0 . -1)) '((0 . 1)))
+           (if (eql color +white+) '((0 . -1)) '((0 . 1)))
            (mover (lambda (moves direction)
                     (move-scan moves board color coord direction T T 2))
-                  (if (eql color :white)
+                  (if (eql color +white+)
                       '((1 . -1) (-1 . -1))
                       '((1 . 1) (-1 . 1))) moves))))
 
-(defun move-list (board coord moves)
-  (inner-move-list board (color-at board coord) coord moves (piece-class (piece-at board coord))))
+(defun move-list (state x y moves)
+  (inner-move-list state (color-at state x y) (cons x y) moves (piece-class (piece-at state x y))))
 
-(defun possible-moves ()
-  (let ((board (game-state-board *game-state*))
-        (color (game-state-on-move *game-state*))
+(defun possible-moves (state)
+  (let ((color (game-state-on-move state))
         (moves ()))
-    (declare (type (simple-vector 6) board))
     (loop for y from 0 to 5 do
-         (let ((row (aref board y)))
-           (loop for x from 0 to 4 do
-                (let* ((piece (char row x))
-                       (spot-color (piece-color piece)))
-                  (when (eql color spot-color)
-                    (setf moves (move-list board (cons x y) moves)))))))
-    moves))
+         (loop for x from 0 to 4 do
+              (let* ((piece (piece-at state x y))
+                     (spot-color (piece-color piece)))
+                (when (eql color spot-color)
+                  (setf moves (move-list state x y moves))))))
+  moves))
