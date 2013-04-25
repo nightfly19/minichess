@@ -1,23 +1,27 @@
 (in-package :elo100)
 
+(defparameter *win-threshold* 10000)
+(defparameter *node-counter* 0)
+(defparameter *depth* 0)
+(defparameter *max-depth* 0)
+
 (defun piece-points (state)
-  (let ((board (getf state :board))
+  (let ((board (game-state-board state))
         (score 0))
     (declare (type fixnum score))
     (loop for y from 0 to 5 do
          (loop for x from 0 to 4 do
               (setf score (+ score (piece-value (raw-piece-at board (cons x y)))))))
-    (if (eql :white (getf state :on-move))
+    (if (eql :white (game-state-on-move state))
         score
         (- score))))
 
-(defun score ()
-  (let* ((points (piece-points *state*))
-         (status *game-status*))
+(defun score (state status)
+  (let ((points (piece-points state)))
     (cond
       ((eql :draw status) 0)
       ((eql :ongoing status) points)
-      (T (if (eql (getf *state* :on-move) status)
+      (T (if (eql (game-state-on-move state) status)
              10000
              -10000)))))
 
@@ -34,43 +38,54 @@
     `(progn
        (when ,move
          (apply-move ,move))
-       (let* ((*possible-moves* (possible-moves))
-              (*game-status* (game-status))
-              (*score* (funcall *heuristic*))
+       (let* ((*game-status* (get-cached-status *game-state* *depth*))
               (,result (multiple-value-list (progn ,@forms))))
-         (undo-move)
+         (when ,move
+           (undo-move))
          (values-list ,result)))))
 
 (defmacro with-state (state &body forms)
-  `(let ((*state* ,state)
-         (*state-history* nil))
+  `(let ((*game-state* ,state))
      (with-move nil ,@forms)))
 
 (defun negamax-inner (prune depth ab)
-  (setf *node-counter* (+ 1 *node-counter*))
-  (if (or (not (eql :ongoing *game-status*))
-          (<= depth 0))
-      (cons *score* (cdr ab))
-      (destructuring-bind (best-move alpha beta) (cons nil ab)
-        (dolist (possible-move *possible-moves*)
-          (when (not (and prune (> alpha beta)))
-            (with-move possible-move
-              (destructuring-bind (possible-alpha possible-beta)
-                  (negate-negamax (negamax-inner prune (- depth 1) (invert-negamax (list alpha beta))))
-                (when (> possible-alpha alpha)
-                  (setf alpha possible-alpha)
-                  (setf best-move possible-move))
-                (when (> possible-beta beta)
-                  (setf beta possible-beta))))))
-        (values (list alpha beta) best-move))))
+  ;;(print "mew")
+  ;;(print (game-status-score *game-status*))
+  (let ((*depth* depth))
+    (setf *node-counter* (+ 1 *node-counter*))
+    (if (or (not (eql :ongoing (game-status-status *game-status*)))
+            (>= depth *max-depth*))
+        (cons (game-status-score *game-status*) (cdr ab))
+        (destructuring-bind (best-move alpha beta) (cons nil ab)
+          (dolist (possible-move (sort (game-status-possible-moves *game-status*)
+                                       (lambda (a b)
+                                         (<
+                                          (with-move a
+                                            (game-status-score
+                                             (get-cached-status *game-state* depth)))
+                                          (with-move b
+                                            (game-status-score
+                                             (get-cached-status *game-state* depth)))))))
+            (when (not (and prune (> alpha beta)))
+              (with-move possible-move
+                (destructuring-bind (possible-alpha possible-beta)
+                    (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta))))
+                  (when (> possible-alpha alpha)
+                    (setf alpha possible-alpha)
+                    (setf best-move possible-move))
+                  (when (> possible-beta beta)
+                    (setf beta possible-beta))))))
+          (values (list alpha beta) best-move)))))
 
-(defun negamax (state heuristic prune depth)
+(defun negamax (state heuristic prune max-depth)
   (with-state state heuristic
-    (let* ((*node-counter* 0)
-           (*heuristic* heuristic)
-           (move (nth-value 1 (negamax-inner prune depth (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
-      (values move *node-counter*))))
+              (let* ((*node-counter* 0)
+                     (*heuristic* heuristic)
+                     (*max-depth* max-depth)
+                     (*depth* 0)
+                     (move (nth-value 1 (negamax-inner prune 0 (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
+                (values move *node-counter*))))
 
 
 (defun bot-move ()
-    (negamax *state* #'score T 5))
+  (negamax *game-state* #'score T 5))

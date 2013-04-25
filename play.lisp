@@ -6,13 +6,14 @@
 
 (defun play-game (white-player black-player)
   (labels ((innergame ()
-             (if (eql *game-status* :ongoing)
-                 (let ((move (funcall (if (eql (getf *state* :on-move) :white) white-player black-player))))
-                   (print-state *state*)
+             (if (eql (game-status-status *game-status*) :ongoing)
+                 (let ((move (funcall (if (eql (game-state-on-move *game-state*) :white) white-player black-player))))
+                   (print-state *game-state*)
                    (with-move move
                      (innergame)))
                  *game-status*)))
-    (with-state (make-state) (innergame))))
+    (with-state (make-game-state)
+      (innergame))))
 
 (defun play-random-game ()
   (play-game #'random-move #'random-move))

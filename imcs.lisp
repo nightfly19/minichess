@@ -124,14 +124,14 @@
     (imcs-message-dispatcher)))
 
 (defun offer-game (&optional color (time "") (opp-time time))
-  (with-state (make-state)
+  (with-state (make-game-state)
     (let* ((*imcs-request-string*
             (format nil "offer ~A ~A ~A" (format-color-string color) time opp-time))
            (*imcs-player* #'bot-move))
       (imcs-session))))
 
 (defun accept-game (game-id &optional (color ""))
-  (with-state (make-state)
+  (with-state (make-game-state)
     (let* ((*imcs-request-string*
             (format nil "accept ~A ~A" game-id (format-color-string color)))
            (*imcs-player* #'bot-move))

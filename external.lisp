@@ -9,9 +9,9 @@
                                     table))
 
 (defun print-state (state)
-  (let ((board (getf state :board)))
+  (let ((board (game-state-board state)))
     (format T "~%")
-    (format T "~A ~A~%" (if (eql :white (getf state :on-move)) "W" "B") (getf state :turn))
+    (format T "~A ~A~%" (if (eql :white (game-state-on-move state)) "W" "B") (game-state-turn state))
     (loop for row from 0 to 5 do
          (format T "~A~%" (aref board row)))))
 
