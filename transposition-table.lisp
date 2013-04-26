@@ -18,6 +18,7 @@
               (let ((new-value (make-game-status)))
                 (setf (gethash key *status-cache*) (cons new-value depth))
                 new-value))))))
+
 (defparameter *weak-status-cache-size* (expt 2 9))
 (defparameter *weak-status-cache* (make-array *weak-status-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *weak-status-cache-off* nil)

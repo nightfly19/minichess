@@ -102,19 +102,24 @@
        (game-state-update-piece state (x (from move)) (y (from move)) 0)
        (x (to move)) (y (to move)) from-piece)))))
 
-(defparameter *move-application-cache* (make-hash-table :test 'equal))
+(defparameter *move-application-cache-size* (expt 2 9))
+(defparameter *move-application-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *move-application-cache-off* T)
 
 (defun apply-move-cached (state move)
   (if *move-application-cache-off*
       (apply-move state move)
-      (let* ((key (cons state move))
-             (cached (gethash key *move-application-cache* :not-found)))
-        (if (not (eql :not-found cached))
-            cached
-            (let ((new (apply-move state move)))
-              (setf (gethash key *move-application-cache*) new)
-              new)))))
+      (let* ((key (mod (sxhash state) *move-application-cache-size*))
+             (cached (aref *move-application-cache* key)))
+        (if (and cached
+                 (= state (cadr cached))
+                 (equal move (caddr cached)))
+            (progn
+              (print (car cached))
+              (car cached))
+            (let ((new-value (apply-move state move)))
+              (setf (aref *move-application-cache* key) (cons new-value (cons state move)))
+              new-value)))))
 
 (defmacro with-state (state &body forms)
   `(let ((*game-state* ,state))
