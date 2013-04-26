@@ -44,13 +44,13 @@
             (>= depth *max-depth*))
         (cons (game-status-score *game-status*) (cdr ab))
         (destructuring-bind (best-move alpha beta) (cons nil ab)
-          (dolist (possible-move (game-status-possible-moves *game-status*))
-            ;; (sort (game-status-possible-moves *game-status*)
-            ;;       (lambda (a b)
-            ;;         (< (game-status-score
-            ;;             (get-cached-status (apply-move *game-state* a) depth))
-            ;;            (game-status-score
-            ;;             (get-cached-status (apply-move *game-state* b) depth))))))
+          (dolist (possible-move ;;(game-status-possible-moves *game-status*))
+                    (sort (game-status-possible-moves *game-status*)
+                          (lambda (a b)
+                            (< (game-status-score
+                                (get-cached-status (apply-move-cached *game-state* a) depth))
+                               (game-status-score
+                                (get-cached-status (apply-move-cached *game-state* b) depth))))))
             (when (not (and prune (>= alpha beta)))
               (with-move possible-move
                 (destructuring-bind (possible-alpha possible-beta)
@@ -67,6 +67,8 @@
            (*heuristic* heuristic)
            (*game-status* (make-game-status))
            (*max-depth* max-depth)
+           (*transposition-table-off* nil)
+           (*move-application-cache-off* nil)
            (*depth* 0)
            (move (nth-value 1 (negamax-inner prune 0 (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
       (values move *node-counter*))))
