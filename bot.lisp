@@ -48,9 +48,9 @@
                     (sort (game-status-possible-moves *game-status*)
                           (lambda (a b)
                             (< (game-status-score
-                                (get-cached-status (apply-move-cached *game-state* a) depth))
+                                (get-weak-cached-status (apply-move-cached *game-state* a) depth))
                                (game-status-score
-                                (get-cached-status (apply-move-cached *game-state* b) depth))))))
+                                (get-weak-cached-status (apply-move-cached *game-state* b) depth))))))
             (when (not (and prune (>= alpha beta)))
               (with-move possible-move
                 (destructuring-bind (possible-alpha possible-beta)
