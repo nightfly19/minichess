@@ -51,15 +51,13 @@
             ;;             (get-cached-status (apply-move *game-state* a) depth))
             ;;            (game-status-score
             ;;             (get-cached-status (apply-move *game-state* b) depth))))))
-            (when (not (and prune (> alpha beta)))
+            (when (not (and prune (>= alpha beta)))
               (with-move possible-move
                 (destructuring-bind (possible-alpha possible-beta)
                     (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta))))
                   (when (> possible-alpha alpha)
                     (setf alpha possible-alpha)
-                    (setf best-move possible-move))
-                  (when (> possible-beta beta)
-                    (setf beta possible-beta))))))
+                    (setf best-move possible-move))))))
 
           (values (list alpha beta) best-move)))))
 
