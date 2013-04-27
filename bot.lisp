@@ -4,6 +4,18 @@
 (defparameter *node-counter* 0)
 (defparameter *depth* 0)
 (defparameter *max-depth* 0)
+(defparameter *time-cutoff* 0)
+
+(define-condition out-of-time (error)
+  ())
+
+(defmacro within-time-p ()
+  `(or (= 0 *time-cutoff*)
+       (< (get-internal-run-time) *time-cutoff*)))
+
+(defun check-within-time ()
+  (when (not (within-time-p))
+    (error 'out-of-time)))
 
 (defun piece-points (state)
   (let ((board state)
@@ -37,43 +49,57 @@
   (list (* -1 (cadr ab))
         (* -1 (car ab))))
 
-(defun negamax-inner (prune depth ab)
-  (let ((*depth* depth))
-    (setf *node-counter* (+ 1 *node-counter*))
-    (if (or (not (eql :ongoing (game-status-status *game-status*)))
-            (>= depth *max-depth*))
-        (cons (game-status-score *game-status*) (cdr ab))
-        (destructuring-bind (best-move alpha beta) (cons nil ab)
-          (dolist (possible-move ;;(game-status-possible-moves *game-status*))
-                    (sort (game-status-possible-moves *game-status*)
-                          (lambda (a b)
-                            (< (game-status-score
-                                (get-weak-cached-status (apply-move-cached *game-state* a) depth))
-                               (game-status-score
-                                (get-weak-cached-status (apply-move-cached *game-state* b) depth))))))
-            (when (not (and prune (>= alpha beta)))
-              (with-move possible-move
-                (destructuring-bind (possible-alpha possible-beta)
-                    (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta))))
-                  (when (> possible-alpha alpha)
-                    (setf alpha possible-alpha)
-                    (setf best-move possible-move))))))
+(labels ((negamax-inner (prune depth ab)
+           (check-within-time)
+           (let ((*depth* depth))
+             (setf *node-counter* (+ 1 *node-counter*))
+             (if (or (not (eql :ongoing (game-status-status *game-status*)))
+                     (>= depth *max-depth*))
+                 (cons (game-status-score *game-status*) (cdr ab))
+                 (destructuring-bind (best-move alpha beta) (cons nil ab)
+                   (dolist (possible-move ;;(game-status-possible-moves *game-status*))
+                             (sort (game-status-possible-moves *game-status*)
+                                   (lambda (a b)
+                                     (< (game-status-score
+                                         (get-weak-cached-status (apply-move-cached *game-state* a) depth))
+                                        (game-status-score
+                                         (get-weak-cached-status (apply-move-cached *game-state* b) depth))))))
+                     (when (not (and prune (>= alpha beta)))
+                       (with-move possible-move
+                         (destructuring-bind (possible-alpha possible-beta)
+                             (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta))))
+                           (when (> possible-alpha alpha)
+                             (setf alpha possible-alpha)
+                             (setf best-move possible-move))))))
 
-          (values (list alpha beta) best-move)))))
+                   (values (list alpha beta) best-move))))))
 
-(defun negamax (state heuristic prune max-depth)
-  (with-state state
-    (let* ((*node-counter* 0)
-           (*heuristic* heuristic)
-           (*game-status* (make-game-status))
-           (*max-depth* max-depth)
-           (*transposition-table-off* nil)
-           (*move-application-cache-off* nil)
-           (*depth* 0)
-           (move (nth-value 1 (negamax-inner prune 0 (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
-      (values move *node-counter*))))
+  (defun negamax (state heuristic prune max-depth)
+    (with-state state
+      (let* ((*node-counter* 0)
+             (*heuristic* heuristic)
+             (*game-status* (make-game-status))
+             (*max-depth* max-depth)
+             (*transposition-table-off* nil)
+             (*move-application-cache-off* nil)
+             (*depth* 0)
+             (move (nth-value 1 (negamax-inner prune 0 (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
+        (values move *node-counter*)))))
+
+(defun iterative-deepening (state heuristic prune max-depth time-for-move)
+  (let ((*time-cutoff* (+ (* internal-time-units-per-second time-for-move)
+                          (get-internal-run-time)))b
+        (best-move))
+    (handler-case
+        (loop for d from 1 to max-depth do
+             (let ((new-move (negamax state heuristic prune d)))
+               (when (not (eql :out-of-time new-move))
+                 (setf best-move new-move))))
+      (out-of-time () (progn
+                        best-move)))
+    best-move))
 
 (defun bot-move ()
   (let ((*move-application-cache-off* nil)
         (*transposition-table-off* nil))
-    (negamax *game-state* #'score T 6)))
+    (iterative-deepening *game-state* #'score T 12 5)))
