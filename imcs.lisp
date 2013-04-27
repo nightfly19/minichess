@@ -121,9 +121,12 @@
   (print-line T line))
 
 (defun imcs-session ()
-  (let ((*imcs-stream* (get-imcs-server-stream))
-        (*imcs-color* :white))
-    (imcs-message-dispatcher)))
+  (handler-case
+      (let ((*imcs-stream* (get-imcs-server-stream))
+            (*imcs-color* :white))
+        (imcs-message-dispatcher))
+    (error () (progn
+                (print-line T "some error")))))
 
 (defun offer-game (&optional color (time "") (opp-time time))
   (with-state *clean-state*

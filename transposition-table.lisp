@@ -1,25 +1,23 @@
 (in-package :elo100)
 
-(defun make-status-cache ()
-  (make-hash-table :size (expt 2 20) :test 'equal))
-
-(defparameter *status-cache* (make-status-cache))
+(defparameter *status-cache-size* (expt 2 16))
 (defparameter *status-cache-off* nil)
+(defparameter *status-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
 
 (defun get-cached-status (state depth)
   (if *status-cache-off*
       (with-state state (make-game-status))
-      (let ((*game-state* state))
-        (let* ((key state)
-               (cached (gethash key *status-cache* :not-found)))
-          (if (and (not (eql cached :not-found))
-                   (>= (cdr cached) depth))
-              (car cached)
-              (let ((new-value (make-game-status)))
-                (setf (gethash key *status-cache*) (cons new-value depth))
-                new-value))))))
+      (let* ((key (mod (sxhash (cons state depth)) *status-cache-size*))
+             (cached (aref *status-cache* key)))
+        (if (and cached
+                 (equal state (cadr cached))
+                 (equal depth (cddr cached)))
+            (car cached)
+            (let ((new-value (with-state state (make-game-status))))
+              (setf (aref *status-cache* key) (cons new-value (cons state depth)))
+              new-value)))))
 
-(defparameter *weak-status-cache-size* (expt 2 20))
+(defparameter *weak-status-cache-size* (expt 2 16))
 (defparameter *weak-status-cache* (make-array *weak-status-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *weak-status-cache-off* nil)
 

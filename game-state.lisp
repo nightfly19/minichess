@@ -102,7 +102,7 @@
        (game-state-update-piece state (x (from move)) (y (from move)) 0)
        (x (to move)) (y (to move)) from-piece)))))
 
-(defparameter *move-application-cache-size* (expt 2 20))
+(defparameter *move-application-cache-size* (expt 2 16))
 (defparameter *move-application-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *move-application-cache-off* T)
 
