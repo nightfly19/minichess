@@ -8,7 +8,7 @@
                            (&key possible-moves
                                  (status (game-state-status *game-state* possible-moves))
                                  (score (funcall *heuristic* *game-state* status)))))
-  (possible-moves (possible-moves *game-state*))
+  (possible-moves (possible-moves *game-state* T))
   (score (funcall *heuristic* *game-state*))
   (status (cows)))
 

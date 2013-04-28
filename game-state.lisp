@@ -51,6 +51,13 @@
 (defmacro piece-at (state x y)
   `(ldb (byte +piece-size+ (piece-offset ,x ,y)) ,state))
 
+(defmacro fast-piece-at (location board-a board-b)
+  ;;(declare (type fixnum location board-a board-b))
+  ;;(declare (type fixnum actual-location))
+  `(if (> 15 ,location)
+      (ldb (byte +piece-size+ (* +piece-size+ ,location)) ,board-a)
+      (ldb (byte +piece-size+ (* +piece-size+ (- ,location 15))) ,board-b)))
+
 (defmacro color-at (state x y)
   `(piece-color (piece-at ,state ,x ,y)))
 

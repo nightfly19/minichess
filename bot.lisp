@@ -58,7 +58,7 @@
                  (cons (game-status-score *game-status*) (cdr ab))
                  (destructuring-bind (best-move alpha beta) (cons nil ab)
                    (dolist (possible-move ;;(game-status-possible-moves *game-status*))
-                             (sort (game-status-possible-moves *game-status*)
+                             (sort (possible-moves *game-state*)
                                    (lambda (a b)
                                      (< (piece-points (apply-move-cached *game-state* a))
                                         (piece-points (apply-move-cached *game-state* b))))))
