@@ -60,10 +60,8 @@
                    (dolist (possible-move ;;(game-status-possible-moves *game-status*))
                              (sort (game-status-possible-moves *game-status*)
                                    (lambda (a b)
-                                     (< (game-status-score
-                                         (get-weak-cached-status (apply-move-cached *game-state* a) depth))
-                                        (game-status-score
-                                         (get-weak-cached-status (apply-move-cached *game-state* b) depth))))))
+                                     (< (piece-points (apply-move-cached *game-state* a))
+                                        (piece-points (apply-move-cached *game-state* b))))))
                      (when (not (and prune (>= alpha beta)))
                        (with-move possible-move
                          (destructuring-bind (possible-alpha possible-beta)
@@ -80,26 +78,22 @@
              (*heuristic* heuristic)
              (*game-status* (make-game-status))
              (*max-depth* max-depth)
-             (*transposition-table-off* nil)
-             (*move-application-cache-off* nil)
              (*depth* 0)
              (move (nth-value 1 (negamax-inner prune 0 (list (- 0  *win-threshold* 1) (+ 1 *win-threshold*))))))
         (values move *node-counter*)))))
 
 (defun iterative-deepening (state heuristic prune max-depth time-for-move)
   (let ((*time-cutoff* (+ (* internal-time-units-per-second time-for-move)
-                          (get-internal-run-time)))b
-        (best-move))
+                          (get-internal-run-time)))
+        (best-move (list nil 0)))
     (handler-case
         (loop for d from 1 to max-depth do
              (let ((new-move (negamax state heuristic prune d)))
                (when (not (eql :out-of-time new-move))
-                 (setf best-move new-move))))
+                 (setf best-move (list new-move d)))))
       (out-of-time () (progn
                         best-move)))
-    best-move))
+    (values-list best-move)))
 
 (defun bot-move ()
-  (let ((*move-application-cache-off* nil)
-        (*transposition-table-off* nil))
-    (iterative-deepening *game-state* #'score T 12 5)))
+  (iterative-deepening *game-state* #'score T 12 5))

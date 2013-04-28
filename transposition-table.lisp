@@ -1,7 +1,7 @@
 (in-package :elo100)
 
 (defparameter *status-cache-size* (expt 2 16))
-(defparameter *status-cache-off* nil)
+(defparameter *status-cache-off* T)
 (defparameter *status-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
 
 (defun get-cached-status (state depth)
@@ -18,8 +18,8 @@
               new-value)))))
 
 (defparameter *weak-status-cache-size* (expt 2 16))
+(defparameter *weak-status-cache-off* T)
 (defparameter *weak-status-cache* (make-array *weak-status-cache-size* :element-type 'cons :initial-element nil))
-(defparameter *weak-status-cache-off* nil)
 
 (defun get-weak-cached-status (state depth)
   (if *weak-status-cache-off*
