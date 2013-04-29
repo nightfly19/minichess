@@ -55,8 +55,8 @@
   ;;(declare (type fixnum location board-a board-b))
   ;;(declare (type fixnum actual-location))
   `(if (> 15 ,location)
-      (ldb (byte +piece-size+ (* +piece-size+ ,location)) ,board-a)
-      (ldb (byte +piece-size+ (* +piece-size+ (- ,location 15))) ,board-b)))
+       (ldb (byte +piece-size+ (* +piece-size+ ,location)) ,board-a)
+       (ldb (byte +piece-size+ (* +piece-size+ (- ,location 15))) ,board-b)))
 
 (defmacro color-at (state x y)
   `(piece-color (piece-at ,state ,x ,y)))
@@ -82,8 +82,8 @@
       ((> (game-state-turn state) 40) :draw)
       (T :ongoing))))
 
-(defmacro game-state-update-piece (state x y piece)
-  `(dpb ,piece (byte +piece-size+ (piece-offset ,x ,y)) ,state))
+(defun game-state-update-piece (state x y piece)
+  (dpb piece (byte +piece-size+ (piece-offset x y)) state))
 
 (defun game-state-promote-pawns (state)
   (let ((new-state state))
