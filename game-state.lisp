@@ -42,14 +42,14 @@
 (defmacro game-state-on-move (state)
   `(ldb (byte +move-size+ +move-offset+) ,state))
 
-(defmacro piece-offset (x y)
-  `(+ +move-size+
-      +turn-size+
-      (* +row-size+ ,y)
-      (* +piece-size+ ,x)))
+(defun piece-offset (x y)
+  (+ +move-size+
+     +turn-size+
+     (* +row-size+ y)
+     (* +piece-size+ x)))
 
-(defmacro piece-at (state x y)
-  `(ldb (byte +piece-size+ (piece-offset ,x ,y)) ,state))
+(defun piece-at (state x y)
+  (ldb (byte +piece-size+ (piece-offset x y)) state))
 
 (defmacro fast-piece-at (location board-a board-b)
   ;;(declare (type fixnum location board-a board-b))

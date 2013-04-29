@@ -64,11 +64,11 @@
                      (>= depth *max-depth*))
                  (cons (game-status-score *game-status*) (cdr ab))
                  (destructuring-bind (best-move alpha beta) (cons nil ab)
-                   (dolist (possible-move (possible-moves *game-state*));;(game-status-possible-moves *game-status*))
-                             ;; (sort (possible-moves *game-state*)
-                             ;;       (lambda (a b)
-                             ;;         (< (piece-points (apply-move-cached *game-state* a))
-                             ;;            (piece-points (apply-move-cached *game-state* b))))))
+                   (dolist (possible-move 
+                             (sort (possible-moves *game-state*)
+                                   (lambda (a b)
+                                     (< (get-cached-score *game-state* depth a)
+                                        (get-cached-score *game-state* depth b)))))
                      (when (not (and prune (>= alpha beta)))
                        (with-move possible-move
                          (destructuring-bind (possible-alpha possible-beta)

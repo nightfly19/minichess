@@ -1,5 +1,25 @@
 (in-package :elo100)
 
+(defparameter *score-cache-size* (expt 2 16))
+(defparameter *score-cache-off* T)
+(defparameter *score-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
+
+(defun get-cached-score (state depth &optional move)
+  (if *score-cache-off*
+      (values 0 0)
+      (let ((key (mod (sxhash (list state move depth)) *score-cache-size*)))
+        (destructuring-bind (c-state c-move c-depth c-score) (aref *score-cache* key)
+          (if (and (not (eql c-state nil))
+                   (= state c-state)
+                   (= move c-move)
+                   (>= c-depth depth))
+              (values c-score c-depth)
+              (values 0 0))))))
+
+(defun cache-score (state depth score &optional move)
+  (when (> depth (nth-value 1 (get-cached-score state depth move)))
+    (setf (aref *score-cache* (mod (sxhash (list state move depth)) *score-cache-size*)) score)))
+
 (defparameter *status-cache-size* (expt 2 16))
 (defparameter *status-cache-off* T)
 (defparameter *status-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
