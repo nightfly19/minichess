@@ -67,14 +67,19 @@
   (let ((white-king-alive nil)
         (black-king-alive nil)
         (white-king (color-piece +king+ +white+))
-        (black-king (color-piece +king+ +black+))
-        (row-offset 0))
-    (loop for y from 0 to 5 do
-         (loop for x from 0 to 4 do
-              (let ((piece (piece-at state x y)))
-                (cond
-                  ((eql piece (color-piece +king+ +white+)) (setf white-king-alive T))
-                  ((eql piece (color-piece +king+ +black+)) (setf black-king-alive T))))))
+        (black-king (color-piece +king+ +black+)))
+    (let* ((half-board-size (* 15 +piece-size+))
+           (board-a (ldb (byte half-board-size +board-offset+) state))
+           (board-b (ldb (byte half-board-size (+ +board-offset+
+                                                  half-board-size)) state)))
+      (loop for location from 0 to (* 14 +piece-size+) by +piece-size+ do
+           (let ((piece-a (ldb (byte +piece-size+ location) board-a))
+                 (piece-b (ldb (byte +piece-size+ location) board-b)))
+             (cond
+               ((or (eql piece-a white-king)
+                    (eql piece-b white-king)) (setf white-king-alive T))
+               ((or (eql piece-a black-king)
+                    (eql piece-b black-king)) (setf black-king-alive T))))))
     (cond
       ((not white-king-alive) :black)
       ((not black-king-alive) :white)
