@@ -18,16 +18,23 @@
     (error 'out-of-time)))
 
 (defun piece-points (state)
-  (let ((board state)
-        (score 0))
+  (let* ((half-board-size (* 15 +piece-size+))
+         (board-a (ldb (byte half-board-size +board-offset+) state))
+         (board-b (ldb (byte half-board-size (+ +board-offset+
+                                                half-board-size)) state))
+         (score 0))
     (declare (type fixnum score))
-    (loop for y from 0 to 5 do
-         (loop for x from 0 to 4 do
-              (let ((piece (piece-at board x y)))
-                (setf score (+ score
-                               (if (= (piece-color piece) +white+)
-                                   (+ (piece-value piece))
-                                   (- (piece-value piece))))))))
+    (loop for location from 0 to (* 14 +piece-size+) by +piece-size+ do
+         (let ((piece-a (ldb (byte +piece-size+ location) board-a))
+               (piece-b (ldb (byte +piece-size+ location) board-b)))
+              (setf score (+ score
+                             (if (= (piece-color piece-a) +white+)
+                                 (+ (piece-value piece-a))
+                                 (- (piece-value piece-a)))))
+              (setf score (+ score
+                             (if (= (piece-color piece-b) +white+)
+                                 (+ (piece-value piece-b))
+                                 (- (piece-value piece-b)))))))
     (if (eql +white+ (game-state-on-move state))
         score
         (- score))))
