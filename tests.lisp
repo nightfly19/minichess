@@ -37,7 +37,7 @@
 
 (defun run-unit-tests ()
   (let ((results (lisp-unit:run-tests :all :elo100)))
-    (sb-ext:exit :code (+ (length (error-tests results))
+    (sb-ext::quit :unix-status (+ (length (error-tests results))
                           (length (failed-tests results))))))
 
 (defun move-list-contains (move-list move)
