@@ -27,14 +27,14 @@
     (loop for location from 0 to (* 14 +piece-size+) by +piece-size+ do
          (let ((piece-a (ldb (byte +piece-size+ location) board-a))
                (piece-b (ldb (byte +piece-size+ location) board-b)))
-              (setf score (+ score
-                             (if (= (piece-color piece-a) +white+)
-                                 (+ (piece-value piece-a))
-                                 (- (piece-value piece-a)))))
-              (setf score (+ score
-                             (if (= (piece-color piece-b) +white+)
-                                 (+ (piece-value piece-b))
-                                 (- (piece-value piece-b)))))))
+           (setf score (+ score
+                          (if (= (piece-color piece-a) +white+)
+                              (+ (piece-value piece-a))
+                              (- (piece-value piece-a)))))
+           (setf score (+ score
+                          (if (= (piece-color piece-b) +white+)
+                              (+ (piece-value piece-b))
+                              (- (piece-value piece-b)))))))
     (if (eql +white+ (game-state-on-move state))
         score
         (- score))))
@@ -64,18 +64,19 @@
                      (>= depth *max-depth*))
                  (cons (game-status-score *game-status*) (cdr ab))
                  (destructuring-bind (best-move alpha beta) (cons nil ab)
-                   (dolist (possible-move 
+                   (dolist (possible-move
                              (sort (possible-moves *game-state*)
                                    (lambda (a b)
-                                     (< (get-cached-score *game-state* depth a)
+                                     (> (get-cached-score *game-state* depth a)
                                         (get-cached-score *game-state* depth b)))))
                      (when (not (and prune (>= alpha beta)))
-                       (with-move possible-move
-                         (destructuring-bind (possible-alpha possible-beta)
-                             (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta))))
-                           (when (> possible-alpha alpha)
-                             (setf alpha possible-alpha)
-                             (setf best-move possible-move))))))
+                       (destructuring-bind (possible-alpha possible-beta)
+                           (with-move possible-move
+                             (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta)))))
+                         (when (> possible-alpha alpha)
+                           (cache-score *game-state* depth possible-alpha possible-move)
+                           (setf alpha possible-alpha)
+                           (setf best-move possible-move)))))
 
                    (values (list alpha beta) best-move))))))
 
