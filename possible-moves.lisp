@@ -114,7 +114,7 @@
         (moves ()))
     (loop for y from 0 to 5 do
          (loop for x from 0 to 4 do
-              (let* ((piece (piece-at state x y))
+              (let* ((piece (fast-piece-at x y board-a board-b))
                      (spot-color (piece-color piece)))
                 (when (eql color spot-color)
                   (setf moves (move-list state x y moves))
