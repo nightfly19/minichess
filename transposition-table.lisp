@@ -5,8 +5,8 @@
 (defparameter *score-cache* (make-array *score-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *score-cache-late-miss* 0)
 
-(defmacro score-cache-key (state depth &optional move)
-  `(mod (sxhash (list ,state ,move ,depth)) *score-cache-size*))
+(defun score-cache-key (state depth &optional move)
+  (mod (sxhash (list state move depth)) *score-cache-size*))
 
 (defun get-cached-score (state depth &optional move)
   (if *score-cache-off*
