@@ -24,17 +24,17 @@
 
 (define-test negamax-sanity-test
   (with-state (make-game-state)
-    (assert-equalp (nth-value 0 (negamax *game-state* #'score T 3))
-                   '((1 . 5) 2 . 3)))
+    (assert-equalp '((1 . 5) 2 . 3)
+                   (nth-value 0 (negamax *game-state* #'score T 3))))
   (with-state (make-game-state)
-    (assert-equalp (nth-value 0 (negamax *game-state* #'score T 4))
-                   '((1 . 5) 0 . 3)))
+    (assert-equalp '((1 . 5) 0 . 3)
+                   (nth-value 0 (negamax *game-state* #'score T 4))))
   (with-state (make-game-state)
-    (assert-equalp (nth-value 0 (negamax *game-state* #'score T 5))
-                   '((2 . 4) 2 . 3)))
+    (assert-equalp '((2 . 4) 2 . 3)
+     (nth-value 0 (negamax *game-state* #'score T 5))))
   (with-state (make-game-state)
-    (assert-equalp (nth-value 0 (negamax *game-state* #'score T 6))
-                   '((1 . 4) 1 . 3))))
+    (assert-equalp '((1 . 4) 1 . 3)
+     (nth-value 0 (negamax *game-state* #'score T 6)))))
 
 (define-test negamax-test
   (with-state (make-game-state) #'score

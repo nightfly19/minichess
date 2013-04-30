@@ -48,8 +48,8 @@
      (* +row-size+ y)
      (* +piece-size+ x)))
 
-(defun piece-at (state x y)
-  (ldb (byte +piece-size+ (piece-offset x y)) state))
+(defmacro piece-at (state x y)
+  `(ldb (byte +piece-size+ (piece-offset ,x ,y)) ,state))
 
 (defun fast-piece-at (x y board-a board-b)
   (declare (type fixnum x y board-a board-b))
@@ -60,9 +60,6 @@
     (if (> 15 location)
         (ldb (byte +piece-size+ (* +piece-size+ location)) board-a)
         (ldb (byte +piece-size+ (* +piece-size+ (- location 15))) board-b))))
-
-(defmacro color-at (state x y)
-  `(piece-color (piece-at ,state ,x ,y)))
 
 (defun game-state-status (state possible-moves)
   ;;(declare (type (or cons nil) possible-moves))
@@ -94,11 +91,15 @@
   (dpb piece (byte +piece-size+ (piece-offset x y)) state))
 
 (defun game-state-promote-pawns (state)
-  (let ((new-state state))
+  (let* ((half-board-size (* 15 +piece-size+))
+         (board-a (ldb (byte half-board-size +board-offset+) state))
+         (board-b (ldb (byte half-board-size (+ +board-offset+
+                                                half-board-size)) state))
+         (new-state state))
     (dolist (y '(0 5))
       (loop for x from 0 to 4 do
-           (let ((piece (piece-at new-state x y)))
-             (when (= (ldb (byte 3 1) piece) +pawn+)
+           (let ((piece (fast-piece-at x y board-a board-b)))
+             (when (= (piece-class piece) +pawn+)
                (setf (ldb (byte 3 (+ 1 (piece-offset x y))) new-state) +queen+)))))
     new-state))
 
