@@ -21,8 +21,14 @@
               ;;(print "Fuck")
               ;;(print raw-cached)
               ;;(declare (ignore c-depth))
-              ;;(print "hit")
-              (values c-score c-depth))
+              (if (and (= state c-state)
+                       (equal move c-move))
+                  (progn
+                    ;;(print "hit")
+                    (values c-score c-depth))
+                  (progn
+                    (incf *score-cache-late-miss*)
+                  (values 0 0))))
             (values 0 0)))))
 ;; (destructuring-bind (c-state c-move c-depth c-score) (aref *score-cache* key)
 ;;   (if (and (not (eql c-state nil))
