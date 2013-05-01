@@ -5,18 +5,18 @@
 
 (defstruct (game-status
              (:constructor make-game-status
-                           (&key possible-moves
+                           (&key (possible-moves (possible-moves *game-state*))
                                  (status (game-state-status *game-state* possible-moves))
                                  (score (funcall *heuristic* *game-state* status)))))
   (possible-moves (possible-moves *game-state* T))
   (score (funcall *heuristic* *game-state*))
-  (status (cows)))
+  (status))
 
 (defmacro with-move (move &body forms)
   (let ((result (gensym "result")))
-    `(with-state ,(if move
-                      `(apply-move-cached *game-state* ,move)
-                      *game-state*)
+    `(progn
+       (game-state-apply-move *game-state* ,move)
        (let* ((*game-status* (get-cached-status *game-state* *depth*))
               (,result (multiple-value-list (progn ,@forms))))
+         (game-state-undo-move *game-state*)
          (values-list ,result)))))
