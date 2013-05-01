@@ -12,11 +12,14 @@
   (score (funcall *heuristic* *game-state*))
   (status))
 
-(defmacro with-move (move &body forms)
+(defmacro with-move-lazy (move lazy &body forms)
   (let ((result (gensym "result")))
     `(progn
        (game-state-apply-move *game-state* ,move)
-       (let* ((*game-status* (get-cached-status *game-state* *depth*))
+       (let* ((*game-status* ,(if (not lazy) '(get-cached-status *game-state* *depth*) nil))
               (,result (multiple-value-list (progn ,@forms))))
          (game-state-undo-move *game-state*)
          (values-list ,result)))))
+
+(defmacro with-move (move &body forms)
+  `(with-move-lazy ,move nil ,@forms))
