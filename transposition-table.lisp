@@ -14,7 +14,7 @@
       (let* ((key (score-cache-key state))
              (raw-cached (aref *score-cache* key)))
         (if raw-cached
-            (destructuring-bind (c-score c-board-a c-board-b) raw-cached
+            (destructuring-bind (c-score c-board-a c-board-b depth) raw-cached
               (if (and (= (game-state-board-a state) c-board-a)
                        (= (game-state-board-b state) c-board-b))
                   c-score

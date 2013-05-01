@@ -161,6 +161,6 @@
 ;;               (setf (aref *move-application-cache* key) (cons new-value (cons state move)))
 ;;               new-value)))))
 
-;; (defmacro with-state (state &body forms)
-;;   `(let ((*game-state* ,state))
-;;      ,@forms))
+(defmacro with-state (state &body forms)
+  `(let ((*game-state* ,state))
+     ,@forms))
