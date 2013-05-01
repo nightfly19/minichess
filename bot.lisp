@@ -19,10 +19,8 @@
     (error 'out-of-time)))
 
 (defun piece-points (state)
-  (let* ((half-board-size (* 15 +piece-size+))
-         (board-a (ldb (byte half-board-size +board-offset+) state))
-         (board-b (ldb (byte half-board-size (+ +board-offset+
-                                                half-board-size)) state))
+  (let* ((board-a (game-state-board-a state))
+         (board-b (game-state-board-b state))
          (score 0))
     (declare (type fixnum score))
     (loop for location from 0 to (* 14 +piece-size+) by +piece-size+ do
@@ -68,8 +66,8 @@
                    (dolist (possible-move
                              (sort (possible-moves *game-state*)
                                    (lambda (a b)
-                                     (> (get-cached-score *game-state* depth a)
-                                        (get-cached-score *game-state* depth b)))))
+                                     (> (with-move a (get-cached-score *game-state*))
+                                        (with-move b (get-cached-score *game-state*))))))
                      (when (not (and prune (>= alpha beta)))
                        (destructuring-bind (possible-alpha possible-beta)
                            (with-move possible-move

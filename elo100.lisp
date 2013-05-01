@@ -9,7 +9,7 @@
 (load "possible-moves.lisp") ;;works
 (load "game-status.lisp") ;;works
 (load "transposition-table.lisp") ;;works
-;;(load "bot.lisp") ;;works
+(load "bot.lisp") ;;works
 ;;(load "external.lisp") ;;works?
 ;;(load "play.lisp") ;;works?
 ;;(load "imcs.lisp") ;;works
