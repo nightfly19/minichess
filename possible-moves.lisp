@@ -104,10 +104,8 @@
 (defun possible-moves (state &optional quick-mode)
   (let* ((*quick-movescan-mode* quick-mode)
          (color (game-state-on-move state))
-         (half-board-size (* 15 +piece-size+))
-         (board-a (ldb (byte half-board-size +board-offset+) state))
-         (board-b (ldb (byte half-board-size (+ +board-offset+
-                                                half-board-size)) state))
+         (board-a (game-state-board-a state))
+         (board-b (game-state-board-b state))
          (moves ()))
     (loop for y from 0 to 5 do
          (loop for x from 0 to 4 do

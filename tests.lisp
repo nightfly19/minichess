@@ -15,6 +15,11 @@
     (game-state-undo-move state-a)
     (assert-true (equalp state-a state-b))))
 
+(define-test possible-moves-sane
+  (assert-equalp '(((1 . 5) 0 . 3) ((1 . 5) 2 . 3) ((4 . 4) 4 . 3) ((3 . 4) 3 . 3)
+                   ((2 . 4) 2 . 3) ((1 . 4) 1 . 3) ((0 . 4) 0 . 3))
+                 (possible-moves (make-initial-game-state))))
+
 ;; (define-test make-state-test
 ;;   (assert-equalp (make-game-state) (make-game-state)))
 
