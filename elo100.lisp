@@ -7,7 +7,7 @@
 (load "coords.lisp") ;;works
 (load "game-state.lisp") ;;seems to work
 (load "possible-moves.lisp") ;;works
-;;(load "game-status.lisp") ;;works
+(load "game-status.lisp") ;;works
 ;;(load "transposition-table.lisp") ;;works
 ;;(load "bot.lisp") ;;works
 ;;(load "external.lisp") ;;works?
