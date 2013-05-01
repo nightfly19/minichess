@@ -3,7 +3,6 @@
 (defparameter *score-cache-size* 2013377)
 (defparameter *score-cache-off* nil)
 (defparameter *score-cache* (make-array *score-cache-size* :element-type 'cons :initial-element nil))
-(defparameter *score-cache-late-miss* 0)
 
 (defun score-cache-key (state)
   (mod (sxhash (list (game-state-board-a state) (game-state-board-b state))) *score-cache-size*))
@@ -32,7 +31,7 @@
                   (game-state-board-a state)
                   (game-state-board-b state)
                   depth)))))
-                  
+
 (defparameter *status-cache-size* (expt 2 16))
 (defparameter *status-cache-off* T)
 (defparameter *status-cache* (make-array *status-cache-size* :element-type 'cons :initial-element nil))
