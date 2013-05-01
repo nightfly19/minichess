@@ -5,6 +5,7 @@
 (defparameter *depth* 0)
 (defparameter *max-depth* 0)
 (defparameter *time-cutoff* 0)
+(defparameter *bot-move-time* 5)
 
 (define-condition out-of-time (error)
   ())
@@ -104,4 +105,4 @@
     (values-list best-move)))
 
 (defun bot-move ()
-  (iterative-deepening *game-state* #'score T 12 5))
+  (iterative-deepening *game-state* #'score T 12 *bot-move-time*))
