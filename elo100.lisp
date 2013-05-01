@@ -13,4 +13,4 @@
 ;;(load "external.lisp") ;;works?
 ;;(load "play.lisp") ;;works?
 ;;(load "imcs.lisp") ;;works
-;;(load "tests.lisp") ;;works, not not good enough :/
+(load "tests.lisp") ;;works, not not good enough :/

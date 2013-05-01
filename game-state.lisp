@@ -2,46 +2,12 @@
 
 ;;(declaim (optimize speed))
 
-;; (defun parse-state (state-sexp)
-;;   (let* ((field 0)
-;;          (board (getf state-sexp :board))
-;;          (row (aref board 0))
-;;          (row-offset 0))
-;;     ;; :on-move
-;;     (when (eql (getf state-sexp :on-move) :white)
-;;       (setf (ldb (byte +move-size+ +move-offset+) field) 1))
-;;     ;; :turn
-;;     (setf (ldb (byte +turn-size+ +turn-offset+) field) (getf state-sexp :turn))
-;;     ;; :board
-;;     (loop for y from 0 to 5 do
-;;          (setf row (aref board y))
-;;          (setf row-offset (* +row-size+ y))
-;;          (loop for x from 0 to 4 do
-;;               (setf (ldb (byte +piece-size+ (+ +board-offset+
-;;                                                row-offset
-;;                                                (* x +piece-size+))) field) (piece-long-to-short (char row x)))))
-;;     field))
-
 (defstruct game-state
-  (board-a nil)
-  (board-b nil)
+  (board-a 0)
+  (board-b 0)
   (on-move +white+)
   (turn 0)
-  (history))
-
-;; (defparameter *clean-state*
-;;   (parse-state '(:on-move :white
-;;                  :turn 0
-;;                  :board #("kqbnr"
-;;                           "ppppp"
-;;                           "....."
-;;                           "....."
-;;                           "PPPPP"
-;;                           "RNBQK"))))
-
-(defparameter *clean-state* (make-game-state))
-
-(defparameter *game-state* *clean-state*)
+  (history nil))
 
 
 ;;(defmacro game-state-turn (state)
@@ -119,7 +85,7 @@
   (when (= (game-state-on-move state) +black+)
     (decf (game-state-turn state))))
 
-(defun apply-move (state move)
+(defun game-state-apply-move (state move)
   (let ((from-piece (piece-at state (x (from move)) (y (from move)))))
     (setf (game-state-history state) (cons (cons (game-state-board-a state)
                                                  (game-state-board-b state))
@@ -127,25 +93,73 @@
     (game-state-update-piece state (x (from move)) (y (from move)) 0)
     (game-state-update-piece state (x (to move)) (y (to move)) from-piece)
     (game-state-promote-pawns state)
-    (game-state-inc-turn state)))
+    (game-state-inc-turn state))
+  state)
 
-(defparameter *move-application-cache-size* (expt 2 16))
-(defparameter *move-application-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
-(defparameter *move-application-cache-off* T)
+(defun game-state-undo-move (state)
+  (let ((move (car (game-state-history state))))
+    (if move
+        (progn
+          (setf (game-state-board-a state) (car move))
+          (setf (game-state-board-b state) (cdr move))
+          (game-state-dec-turn state)
+          (setf (game-state-history state) (cdr (game-state-history state)))
+          state)
+        state)))
 
-(defun apply-move-cached (state move)
-  (if *move-application-cache-off*
-      (apply-move state move)
-      (let* ((key (mod (sxhash (cons state move)) *move-application-cache-size*))
-             (cached (aref *move-application-cache* key)))
-        (if (and cached
-                 (equal state (cadr cached))
-                 (equal move (cddr cached)))
-            (car cached)
-            (let ((new-value (apply-move state move)))
-              (setf (aref *move-application-cache* key) (cons new-value (cons state move)))
-              new-value)))))
+(defun parse-state (state-sexp)
+  (let* ((board (getf state-sexp :board))
+         (row (aref board 0))
+         (row-offset 0)
+         (state (make-game-state)))
+    ;; :on-move
+    (if (eql (getf state-sexp :on-move) :white)
+        (setf (game-state-on-move state) +white+)
+        (setf (game-state-on-move state) +black+))
+    ;; :turn
+    (setf (game-state-turn state) (getf state-sexp :turn))
+    ;; :board
+    (loop for y from 0 to 5 do
+         (setf row (aref board y))
+         (setf row-offset (* +row-size+ y))
+         (loop for x from 0 to 4 do
+              (game-state-update-piece state x y (piece-long-to-short (char row x)))))
+    state))
 
-(defmacro with-state (state &body forms)
-  `(let ((*game-state* ,state))
-     ,@forms))
+(defparameter *clean-state*
+  (parse-state '(:on-move :white
+                 :turn 0
+                 :board #("kqbnr"
+                          "ppppp"
+                          "....."
+                          "....."
+                          "PPPPP"
+                          "RNBQK"))))
+
+(defun make-initial-game-state ()
+  (make-game-state
+   :board-a (game-state-board-a *clean-state*)
+   :board-b (game-state-board-b *clean-state*)))
+
+(defparameter *game-state* (make-initial-game-state))
+
+;; (defparameter *move-application-cache-size* (expt 2 16))
+;; (defparameter *move-application-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
+;; (defparameter *move-application-cache-off* T)
+
+;; (defun apply-move-cached (state move)
+;;   (if *move-application-cache-off*
+;;       (apply-move state move)
+;;       (let* ((key (mod (sxhash (cons state move)) *move-application-cache-size*))
+;;              (cached (aref *move-application-cache* key)))
+;;         (if (and cached
+;;                  (equal state (cadr cached))
+;;                  (equal move (cddr cached)))
+;;             (car cached)
+;;             (let ((new-value (apply-move state move)))
+;;               (setf (aref *move-application-cache* key) (cons new-value (cons state move)))
+;;               new-value)))))
+
+;; (defmacro with-state (state &body forms)
+;;   `(let ((*game-state* ,state))
+;;      ,@forms))
