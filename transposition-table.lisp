@@ -1,6 +1,6 @@
 (in-package :elo100)
 
-(defparameter *score-cache-size* (expt 2 21))
+(defparameter *score-cache-size* 2013377)
 (defparameter *score-cache-off* nil)
 (defparameter *score-cache* (make-array *score-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *score-cache-late-miss* 0)
@@ -26,7 +26,7 @@
          (cached (aref *score-cache* key)))
     (when (and (not *score-cache-off*)
                (or (eql cached nil)
-                   (> depth (nth 2 cached))))
+                   (> depth (nth 3 cached))))
       (setf (aref *score-cache* key)
             (list score
                   (game-state-board-a state)
