@@ -62,3 +62,5 @@ These functions were not called:
  ELO100::RUN-UNIT-TESTS ELO100::SERIALIZE-COORD ELO100::SERIALIZE-MOVE
 ((1 . 5) 0 . 3)
 1904433
+
+Opening book should preserve branches of equal strength when possible
