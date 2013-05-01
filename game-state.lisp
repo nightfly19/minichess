@@ -1,57 +1,60 @@
 (in-package :elo100)
 
-(declaim (optimize speed))
+;;(declaim (optimize speed))
 
-(defun parse-state (state-sexp)
-  (let* ((field 0)
-         (board (getf state-sexp :board))
-         (row (aref board 0))
-         (row-offset 0))
-    ;; :on-move
-    (when (eql (getf state-sexp :on-move) :white)
-      (setf (ldb (byte +move-size+ +move-offset+) field) 1))
-    ;; :turn
-    (setf (ldb (byte +turn-size+ +turn-offset+) field) (getf state-sexp :turn))
-    ;; :board
-    (loop for y from 0 to 5 do
-         (setf row (aref board y))
-         (setf row-offset (* +row-size+ y))
-         (loop for x from 0 to 4 do
-              (setf (ldb (byte +piece-size+ (+ +board-offset+
-                                               row-offset
-                                               (* x +piece-size+))) field) (piece-long-to-short (char row x)))))
-    field))
+;; (defun parse-state (state-sexp)
+;;   (let* ((field 0)
+;;          (board (getf state-sexp :board))
+;;          (row (aref board 0))
+;;          (row-offset 0))
+;;     ;; :on-move
+;;     (when (eql (getf state-sexp :on-move) :white)
+;;       (setf (ldb (byte +move-size+ +move-offset+) field) 1))
+;;     ;; :turn
+;;     (setf (ldb (byte +turn-size+ +turn-offset+) field) (getf state-sexp :turn))
+;;     ;; :board
+;;     (loop for y from 0 to 5 do
+;;          (setf row (aref board y))
+;;          (setf row-offset (* +row-size+ y))
+;;          (loop for x from 0 to 4 do
+;;               (setf (ldb (byte +piece-size+ (+ +board-offset+
+;;                                                row-offset
+;;                                                (* x +piece-size+))) field) (piece-long-to-short (char row x)))))
+;;     field))
 
-(defparameter *clean-state*
-  (parse-state '(:on-move :white
-                 :turn 0
-                 :board #("kqbnr"
-                          "ppppp"
-                          "....."
-                          "....."
-                          "PPPPP"
-                          "RNBQK"))))
+(defstruct game-state
+  (board-a nil)
+  (board-b nil)
+  (on-move +white+)
+  (turn 0)
+  (history))
+
+;; (defparameter *clean-state*
+;;   (parse-state '(:on-move :white
+;;                  :turn 0
+;;                  :board #("kqbnr"
+;;                           "ppppp"
+;;                           "....."
+;;                           "....."
+;;                           "PPPPP"
+;;                           "RNBQK"))))
+
+(defparameter *clean-state* (make-game-state))
 
 (defparameter *game-state* *clean-state*)
 
-(defun make-game-state () *clean-state*)
 
-(defun make-initial-game-state () *clean-state*)
+;;(defmacro game-state-turn (state)
+;;  `(ldb (byte +turn-size+ +turn-offset+) ,state))
 
-(defmacro game-state-turn (state)
-  `(ldb (byte +turn-size+ +turn-offset+) ,state))
-
-(defmacro game-state-on-move (state)
-  `(ldb (byte +move-size+ +move-offset+) ,state))
+;;(defmacro game-state-on-move (state)
+;;  `(ldb (byte +move-size+ +move-offset+) ,state))
 
 (defun piece-offset (x y)
   (+ +move-size+
      +turn-size+
      (* +row-size+ y)
      (* +piece-size+ x)))
-
-(defmacro piece-at (state x y)
-  `(ldb (byte +piece-size+ (piece-offset ,x ,y)) ,state))
 
 (defun fast-piece-at (x y board-a board-b)
   (declare (type fixnum x y board-a board-b))
@@ -63,6 +66,9 @@
         (ldb (byte +piece-size+ (* +piece-size+ location)) board-a)
         (ldb (byte +piece-size+ (* +piece-size+ (- location 15))) board-b))))
 
+(defun piece-at (state x y)
+  (fast-piece-at x y (game-state-board-a state) (game-state-board-b state)))
+
 (defun game-state-status (state possible-moves)
   ;;(declare (type (or cons nil) possible-moves))
   ;; Stealing whoppers way of checking for kings here :)
@@ -70,10 +76,8 @@
         (black-king-alive nil)
         (white-king (color-piece +king+ +white+))
         (black-king (color-piece +king+ +black+)))
-    (let* ((half-board-size (* 15 +piece-size+))
-           (board-a (ldb (byte half-board-size +board-offset+) state))
-           (board-b (ldb (byte half-board-size (+ +board-offset+
-                                                  half-board-size)) state)))
+    (let* ((board-a (game-state-board-a state))
+           (board-b (game-state-board-b state)))
       (loop for location from 0 to (* 14 +piece-size+) by +piece-size+ do
            (let ((piece-a (ldb (byte +piece-size+ location) board-a))
                  (piece-b (ldb (byte +piece-size+ location) board-b)))
@@ -90,35 +94,40 @@
       (T :ongoing))))
 
 (defun game-state-update-piece (state x y piece)
-  (dpb piece (byte +piece-size+ (piece-offset x y)) state))
+  (let ((location (+ (* y 5) x)))
+    (declare (type fixnum location))
+    (if (> 15 location)
+        (setf (ldb (byte +piece-size+ (* +piece-size+ location)) (game-state-board-a state)) piece)
+        (setf (ldb (byte +piece-size+ (* +piece-size+ (- location 15))) (game-state-board-b state)) piece))))
 
 (defun game-state-promote-pawns (state)
-  (let* ((half-board-size (* 15 +piece-size+))
-         (board-a (ldb (byte half-board-size +board-offset+) state))
-         (board-b (ldb (byte half-board-size (+ +board-offset+
-                                                half-board-size)) state))
-         (new-state state))
+  (let* ((board-a (game-state-board-a state))
+         (board-b (game-state-board-b state)))
     (dolist (y '(0 5))
       (loop for x from 0 to 4 do
            (let ((piece (fast-piece-at x y board-a board-b)))
              (when (= (piece-class piece) +pawn+)
-               (setf (ldb (byte 3 (+ 1 (piece-offset x y))) new-state) +queen+)))))
-    new-state))
+               (game-state-update-piece state x y piece)))))))
 
 (defun game-state-inc-turn (state)
-  (let* ((new-state (dpb (opp-color (game-state-on-move state)) (byte +move-size+ +move-offset+) state))
-         (color (game-state-on-move new-state)))
-    (if (= color +white+)
-        (dpb (+ (game-state-turn state) 1) (byte +turn-size+ +turn-offset+) new-state)
-        new-state)))
+  (setf (game-state-on-move state) (opp-color (game-state-on-move state)))
+  (when (= (game-state-on-move state) +white+)
+    (incf (game-state-turn state))))
+
+(defun game-state-dec-turn (state)
+  (setf (game-state-on-move state) (opp-color (game-state-on-move state)))
+  (when (= (game-state-on-move state) +black+)
+    (decf (game-state-turn state))))
 
 (defun apply-move (state move)
   (let ((from-piece (piece-at state (x (from move)) (y (from move)))))
-    (game-state-inc-turn
-     (game-state-promote-pawns
-      (game-state-update-piece
-       (game-state-update-piece state (x (from move)) (y (from move)) 0)
-       (x (to move)) (y (to move)) from-piece)))))
+    (setf (game-state-history state) (cons (cons (game-state-board-a state)
+                                                 (game-state-board-b state))
+                                           (game-state-history state)))
+    (game-state-update-piece state (x (from move)) (y (from move)) 0)
+    (game-state-update-piece state (x (to move)) (y (to move)) from-piece)
+    (game-state-promote-pawns state)
+    (game-state-inc-turn state)))
 
 (defparameter *move-application-cache-size* (expt 2 16))
 (defparameter *move-application-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
