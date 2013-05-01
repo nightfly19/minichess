@@ -5,50 +5,37 @@
 (defparameter *score-cache* (make-array *score-cache-size* :element-type 'cons :initial-element nil))
 (defparameter *score-cache-late-miss* 0)
 
-(defun score-cache-key (state depth &optional move)
-  (mod (sxhash (list state move depth)) *score-cache-size*))
+(defun score-cache-key (state)
+  (mod (sxhash (list (game-state-board-a state) (game-state-board-b state))) *score-cache-size*))
 
-(defun get-cached-score (state depth &optional move)
+(defun get-cached-score (state)
   (if *score-cache-off*
-      (values 0 0)
-      (let* ((key (score-cache-key state depth move))
+      0
+      (let* ((key (score-cache-key state))
              (raw-cached (aref *score-cache* key)))
         (if raw-cached
-            (destructuring-bind (c-state c-move c-depth c-score) raw-cached
-              ;;(print "Maybe hit")
-              ;;(print raw-cached)
-              ;;(print (list state move depth))
-              ;;(print "Fuck")
-              ;;(print raw-cached)
-              ;;(declare (ignore c-depth))
-              (if (and (= state c-state)
-                       (equal move c-move))
-                  (progn
-                    ;;(print "hit")
-                    (values c-score c-depth))
-                  (progn
-                    (incf *score-cache-late-miss*)
-                  (values 0 0))))
-            (values 0 0)))))
-;; (destructuring-bind (c-state c-move c-depth c-score) (aref *score-cache* key)
-;;   (if (and (not (eql c-state nil))
-;;            (= state c-state)
-;;            (= move c-move)
-;;            (>= c-depth depth))
-;;       (values c-score c-depth)
-;;       (values 0 0))))))
+            (destructuring-bind (c-score c-board-a c-board-b) raw-cached
+              (if (and (= (game-state-board-a state) c-board-a)
+                       (= (game-state-board-b state) c-board-b))
+                  c-score
+                  0))
+            0))))
 
-(defun cache-score (state depth score &optional move)
-  (when (and (not *score-cache-off*)
-             (> depth (nth-value 1 (get-cached-score state depth move))))
-    ;;(print "caching")
-    ;;(print (score-cache-key state depth move))
-    (setf (aref *score-cache* (score-cache-key state depth move))
-          (list state move depth score))))
-
+(defun cache-score (state depth score)
+  (let* ((key (score-cache-key state))
+         (cached (aref *score-cache* key)))
+    (when (and (not *score-cache-off*)
+               (or (eql cached nil)
+                   (> depth (nth 2 cached))))
+      (setf (aref *score-cache* key)
+            (list score
+                  (game-state-board-a state)
+                  (game-state-board-b state)
+                  depth)))))
+                  
 (defparameter *status-cache-size* (expt 2 16))
 (defparameter *status-cache-off* T)
-(defparameter *status-cache* (make-array *move-application-cache-size* :element-type 'cons :initial-element nil))
+(defparameter *status-cache* (make-array *status-cache-size* :element-type 'cons :initial-element nil))
 
 (defun get-cached-status (state depth)
   (if *status-cache-off*
