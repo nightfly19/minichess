@@ -66,8 +66,8 @@
                    (dolist (possible-move
                              (sort (possible-moves *game-state*)
                                    (lambda (a b)
-                                     (> (with-move a (get-cached-score *game-state*))
-                                        (with-move b (get-cached-score *game-state*))))))
+                                     (> (with-move-lazy a t (get-cached-score *game-state*))
+                                        (with-move-lazy b t (get-cached-score *game-state*))))))
                      (when (not (and prune (>= alpha beta)))
                        (destructuring-bind (possible-alpha possible-beta)
                            (with-move possible-move
