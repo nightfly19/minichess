@@ -74,8 +74,11 @@
                        (destructuring-bind (possible-alpha possible-beta)
                            (with-move possible-move
                              (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta)))))
-                         (when (> possible-alpha alpha)
-                           (cache-score *game-state* depth possible-alpha possible-move)
+                         (cache-score *game-state* depth possible-alpha possible-move)
+                         (when (> possible-beta beta)
+                           (setf beta possible-beta))
+                         (when (and (> possible-alpha alpha)
+                                    (< possible-beta *win-threshold*))
                            (setf alpha possible-alpha)
                            (setf best-move possible-move)))))
 
