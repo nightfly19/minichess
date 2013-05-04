@@ -34,7 +34,9 @@
 
 (defparameter *game-state* *clean-state*)
 
-(defun make-game-state () *game-state*)
+(defun make-game-state () *clean-state*)
+
+(defun make-initial-game-state () *clean-state*)
 
 (defmacro game-state-turn (state)
   `(ldb (byte +turn-size+ +turn-offset+) ,state))
