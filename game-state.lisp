@@ -7,8 +7,14 @@
   (board-b 0)
   (on-move +white+)
   (turn 0)
+  (hash nil)
   (history nil))
 
+(defstruct game-state-history
+  (board-a)
+  (board-b)
+  (hash)
+  (history))
 
 ;;(defmacro game-state-turn (state)
 ;;  `(ldb (byte +turn-size+ +turn-offset+) ,state))
@@ -87,9 +93,10 @@
 
 (defun game-state-apply-move (state move)
   (let ((from-piece (piece-at state (x (from move)) (y (from move)))))
-    (setf (game-state-history state) (cons (cons (game-state-board-a state)
-                                                 (game-state-board-b state))
-                                           (game-state-history state)))
+    (setf (game-state-history state) (make-game-state-history :board-a (game-state-board-a state)
+                                                              :board-b (game-state-board-b state)
+                                                              :hash (game-state-hash state)
+                                                              :history (game-state-history state)))
     (game-state-update-piece state (x (from move)) (y (from move)) 0)
     (game-state-update-piece state (x (to move)) (y (to move)) from-piece)
     (game-state-promote-pawns state)
@@ -97,13 +104,14 @@
   state)
 
 (defun game-state-undo-move (state)
-  (let ((move (car (game-state-history state))))
-    (if move
+  (let ((history (game-state-history state)))
+    (if history
         (progn
-          (setf (game-state-board-a state) (car move))
-          (setf (game-state-board-b state) (cdr move))
+          (setf (game-state-board-a state) (game-state-history-board-a history))
+          (setf (game-state-board-b state) (game-state-history-board-b history))
+          (setf (game-state-hash state) (game-state-history-hash history))
           (game-state-dec-turn state)
-          (setf (game-state-history state) (cdr (game-state-history state)))
+          (setf (game-state-history state) (game-state-history-history history))
           state)
         state)))
 
