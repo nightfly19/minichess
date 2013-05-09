@@ -1,11 +1,21 @@
 (in-package :elo100)
 
 (defparameter *score-cache-size* 2013377)
+;;(defparameter *score-cache-size* 1000003)
+;;(defparameter *score-cache-size* 200003)
+;;(defparameter *score-cache-size* 23)
 (defparameter *score-cache-off* nil)
 (defparameter *score-cache* (make-array *score-cache-size* :element-type 'cons :initial-element nil))
+(defparameter *score-cache-hit* 0)
+(defparameter *score-cache-early-miss* 0)
+(defparameter *score-cache-late-miss* 0)
+
+(defun score-cache-in-use ()
+  (reduce (lambda (score element)
+            (if element (+ 1 score) score)) *score-cache* :initial-value 0))
 
 (defun score-cache-key (state)
-  (mod (sxhash (list (game-state-board-a state) (game-state-board-b state))) *score-cache-size*))
+  (mod (game-state-hash state) *score-cache-size*))
 
 (defun get-cached-score (state)
   (if *score-cache-off*
@@ -14,11 +24,17 @@
              (raw-cached (aref *score-cache* key)))
         (if raw-cached
             (destructuring-bind (c-score c-board-a c-board-b depth) raw-cached
-              (if (and (= (game-state-board-a state) c-board-a)
-                       (= (game-state-board-b state) c-board-b))
-                  c-score
-                  0))
-            0))))
+              (if t;;(and (= (game-state-board-a state) c-board-a)
+                  ;;     (= (game-state-board-b state) c-board-b))
+                  (progn
+                    (incf *score-cache-hit*)
+                    c-score)
+                  (progn
+                    (incf *score-cache-late-miss*)
+                    0)))
+            (progn
+              (incf *score-cache-early-miss*)
+                    0)))))
 
 (defun cache-score (state depth score)
   (let* ((key (score-cache-key state))
