@@ -1,5 +1,29 @@
 (in-package :elo100)
 
+(defparameter *zoberist-array* (make-array (list 30 (expt 2 +piece-size+)) :element-type 'fixnum))
+
+(loop for i from 0 upto (- 30 1) do
+     (loop for g from 0 to (- (expt 2 +piece-size+) 1) do
+          (setf (aref *zoberist-array* i g) (if (< 0 (random 2)) (random most-positive-fixnum)
+                                                (- (random (abs most-negative-fixnum)))))))
+(defun zoberist-piece-value (x y piece)
+  (aref *zoberist-array* (+ (* y 5) x) piece))
+
+(defun zoberist-get-value (state x y)
+  (aref *zoberist-array* (+ (* y 5) x) (piece-at state x y)))
+
+(defun zoberist-get-value-fast (board-a board-b x y)
+  (aref *zoberist-array* (+ (* y 5) x) (fast-piece-at x y board-a board-b)))
+
+(defun zoberist-hash-state (state)
+  (let ((board-a (game-state-board-a state))
+        (board-b (game-state-board-b state))
+        (hash 0))
+    (loop for x from 0 to 4 do
+         (loop for y from 0 to 5 do
+              (setf hash (logxor hash (zoberist-get-value-fast board-a board-b x y)))))
+    hash))
+
 ;;(declaim (optimize speed))
 
 (defstruct game-state
@@ -7,7 +31,7 @@
   (board-b 0)
   (on-move +white+)
   (turn 0)
-  (hash nil)
+  (hash 0)
   (history nil))
 
 (defstruct game-state-history
@@ -68,6 +92,7 @@
 (defun game-state-update-piece (state x y piece)
   (let ((location (+ (* y 5) x)))
     (declare (type fixnum location))
+    (setf (game-state-hash state) (logxor (game-state-hash state) (zoberist-piece-value x y piece)))
     (if (> 15 location)
         (setf (ldb (byte +piece-size+ (* +piece-size+ location)) (game-state-board-a state)) piece)
         (setf (ldb (byte +piece-size+ (* +piece-size+ (- location 15))) (game-state-board-b state)) piece))))
@@ -99,6 +124,7 @@
                                                               :history (game-state-history state)))
     (game-state-update-piece state (x (from move)) (y (from move)) 0)
     (game-state-update-piece state (x (to move)) (y (to move)) from-piece)
+    (setf (game-state-hash state) (- (game-state-hash state)))
     (game-state-promote-pawns state)
     (game-state-inc-turn state))
   state)
@@ -132,6 +158,7 @@
          (setf row-offset (* +row-size+ y))
          (loop for x from 0 to 4 do
               (game-state-update-piece state x y (piece-long-to-short (char row x)))))
+    (setf (game-state-hash state) (zoberist-hash-state state))
     state))
 
 (defparameter *clean-state*
@@ -147,8 +174,9 @@
 (defun make-initial-game-state ()
   (make-game-state
    :board-a (game-state-board-a *clean-state*)
-   :board-b (game-state-board-b *clean-state*)))
-
+   :board-b (game-state-board-b *clean-state*)
+   :hash (game-state-hash *clean-state*)))
+         
 (defparameter *game-state* (make-initial-game-state))
 
 ;; (defparameter *move-application-cache-size* (expt 2 16))
