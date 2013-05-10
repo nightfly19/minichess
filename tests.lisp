@@ -97,17 +97,16 @@
                    (nth-value 0 (negamax *game-state* #'score T 6)))))
 
 (defparameter *hell-state* (parse-state (list
-              :turn 29
-              :on-move :white
-              :board
-              #("kn.rb"
-                "p...."
-                "Ppp.q"
-                ".P.Pp"
-                "..P.P"
-                "RN.KQ"))))
-
-
+                                         :turn 10
+                                         :on-move :white
+                                         :board
+                                         #(
+                                           "k..r."
+                                           ".p..p"
+                                           "p.p.."
+                                           "..N.B"
+                                           "PPPKP"
+                                           "...R."))))
 (defun run-unit-tests ()
   (let ((results (lisp-unit:run-tests :all :elo100)))
     (sb-ext::quit :unix-status (+ (length (error-tests results))

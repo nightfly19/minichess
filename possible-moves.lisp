@@ -53,7 +53,7 @@
 
 (defmethod inner-move-list (board-a board-b color x y moves (piece-class (eql +rook+)))
   (mover (lambda (moves direction)
-           (move-scan moves board-a board-b color x y direction T nil 3))
+           (move-scan moves board-a board-b color x y direction T nil 99))
          '((1 . 0) (-1 . 0) (0 . 1) (0 . -1)) moves))
 
 (defmethod inner-move-list (board-a board-b color x y moves (piece-class (eql +queen+)))

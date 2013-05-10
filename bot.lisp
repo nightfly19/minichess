@@ -61,7 +61,9 @@
              (setf *node-counter* (+ 1 *node-counter*))
              (if (or (not (eql :ongoing (game-status-status *game-status*)))
                      (>= depth *max-depth*))
-                 (cons (game-status-score *game-status*) (cdr ab))
+                 (progn
+                   ;;(print (list depth (game-status-score *game-status*)))
+                   (cons (game-status-score *game-status*) (cdr ab)))
                  (destructuring-bind (best-move alpha beta) (cons nil ab)
                    (dolist (possible-move
                              (sort (possible-moves *game-state*)
@@ -71,12 +73,14 @@
                      (when (not (and prune (>= alpha beta)))
                        (destructuring-bind (possible-alpha possible-beta)
                            (with-move possible-move
+                             ;;(format T "~%~A with ~A" depth possible-move)
                              (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta)))))
                          (cache-score *game-state* depth possible-alpha)
                          (when (> possible-beta beta)
                            (setf beta possible-beta))
                          (when (and (> possible-alpha alpha)
                                     (< possible-beta *win-threshold*))
+                           ;;(print (list depth possible-move possible-alpha possible-beta))
                            (setf alpha possible-alpha)
                            (setf best-move possible-move)))))
 
