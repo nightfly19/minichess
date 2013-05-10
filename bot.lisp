@@ -98,7 +98,7 @@
         (best-move (list nil 0)))
     (handler-case
         (loop for d from 1 to max-depth do
-             (let ((new-move (negamax state heuristic prune d)))
+             (let ((new-move (negamax (game-state-copy state) heuristic prune d)))
                (when (not (eql :out-of-time new-move))
                  (setf best-move (list new-move d)))))
       (out-of-time () (progn

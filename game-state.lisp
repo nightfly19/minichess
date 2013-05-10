@@ -40,6 +40,24 @@
   (hash)
   (history))
 
+(defun game-state-history-copy (history)
+  (when history
+    (make-game-state-history
+                   :board-a (game-state-history-board-a history)
+                   :board-b (game-state-history-board-b history)
+                   :hash (game-state-history-hash history)
+                   :history (game-state-history-copy (game-state-history-history history)))))
+
+(defun game-state-copy (state)
+  (when state
+    (make-game-state
+     :board-a (game-state-board-a state)
+     :board-b (game-state-board-b state)
+     :on-move (game-state-on-move state)
+     :turn (game-state-turn state)
+     :hash (game-state-hash state)
+     :history (game-state-history-copy (game-state-history state)))))
+
 ;;(defmacro game-state-turn (state)
 ;;  `(ldb (byte +turn-size+ +turn-offset+) ,state))
 
@@ -176,7 +194,7 @@
    :board-a (game-state-board-a *clean-state*)
    :board-b (game-state-board-b *clean-state*)
    :hash (game-state-hash *clean-state*)))
-         
+
 (defparameter *game-state* (make-initial-game-state))
 
 ;; (defparameter *move-application-cache-size* (expt 2 16))
