@@ -82,6 +82,20 @@
       (assert-equalp (piece-at *game-state* 4 5)
                      (fast-piece-at 4 5 board-a board-b)))))
 
+(define-test state-status-sanity
+  (with-state #S(GAME-STATE
+                 :BOARD-A 10168283704090636
+                 :BOARD-B 794174100585054989
+                 :ON-MOVE 0
+                 :TURN 10
+                 :HASH 3250231148521161274
+                 :HISTORY #S(GAME-STATE-HISTORY
+                             :BOARD-A 10182577355251724
+                             :BOARD-B 794174100585054976
+                             :HASH -568077180868330551
+                             :HISTORY NIL)))
+  (assert-equalp :ongoing (game-state-status *game-state* (possible-moves *game-state*))))
+
 (define-test negamax-sanity-test
   (with-state (make-initial-game-state)
     (assert-equalp '((1 . 5) 2 . 3)
@@ -101,12 +115,14 @@
                                          :on-move :white
                                          :board
                                          #(
-                                           "k..r."
-                                           ".p..p"
-                                           "p.p.."
-                                           "..N.B"
-                                           "PPPKP"
-                                           "...R."))))
+                                           "k..nr"
+                                           "pq..."
+                                           "Kpbp."
+                                           "..P.."
+                                           "PP.Pp"
+                                           "RNB.Q"))))
+
+
 (defun run-unit-tests ()
   (let ((results (lisp-unit:run-tests :all :elo100)))
     (sb-ext::quit :unix-status (+ (length (error-tests results))

@@ -95,11 +95,11 @@
       (loop for location from 0 to (* 14 +piece-size+) by +piece-size+ do
            (let ((piece-a (ldb (byte +piece-size+ location) board-a))
                  (piece-b (ldb (byte +piece-size+ location) board-b)))
-             (cond
-               ((or (eql piece-a white-king)
+             (when
+               (or (eql piece-a white-king)
                     (eql piece-b white-king)) (setf white-king-alive T))
-               ((or (eql piece-a black-king)
-                    (eql piece-b black-king)) (setf black-king-alive T))))))
+             (when (or (eql piece-a black-king)
+                    (eql piece-b black-king)) (setf black-king-alive T)))))
     (cond
       ((not white-king-alive) +black+)
       ((not black-king-alive) +white+)

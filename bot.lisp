@@ -6,6 +6,7 @@
 (defparameter *max-depth* 0)
 (defparameter *time-cutoff* 0)
 (defparameter *bot-move-time* 5)
+(defparameter *bot-debug* nil)
 
 (define-condition out-of-time (error)
   ())
@@ -62,9 +63,10 @@
              (if (or (not (eql :ongoing (game-status-status *game-status*)))
                      (>= depth *max-depth*))
                  (progn
-                   ;;(print (list depth (game-status-score *game-status*)))
+                   (when *bot-debug* (print (list "bailing" depth (game-status-score *game-status*))))
                    (cons (game-status-score *game-status*) (cdr ab)))
                  (destructuring-bind (best-move alpha beta) (cons nil ab)
+                   (when *bot-debug* (print "looping moves"))
                    (dolist (possible-move
                              (sort (possible-moves *game-state*)
                                    (lambda (a b)
@@ -73,14 +75,18 @@
                      (when (not (and prune (>= alpha beta)))
                        (destructuring-bind (possible-alpha possible-beta)
                            (with-move possible-move
-                             ;;(format T "~%~A with ~A" depth possible-move)
+                             (when *bot-debug*
+                                   (print (list :with depth possible-move))
+                                   (print *game-state*)
+                                   ;;(print (list :possible-moves (possible-moves *game-state*)))
+                                   )
                              (negate-negamax (negamax-inner prune (+ depth 1) (invert-negamax (list alpha beta)))))
                          (cache-score *game-state* depth possible-alpha)
                          (when (> possible-beta beta)
                            (setf beta possible-beta))
-                         (when (and (> possible-alpha alpha)
-                                    (< possible-beta *win-threshold*))
-                           ;;(print (list depth possible-move possible-alpha possible-beta))
+                         (when (and (> possible-alpha alpha))
+                                    ;;(< possible-beta *win-threshold*))
+                           (when *bot-debug* (print (list :better depth possible-move possible-alpha possible-beta)))
                            (setf alpha possible-alpha)
                            (setf best-move possible-move)))))
 
