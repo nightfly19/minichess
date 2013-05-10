@@ -31,10 +31,10 @@
                    (nth-value 0 (negamax *game-state* #'score T 4))))
   (with-state (make-initial-game-state)
     (assert-equalp '((2 . 4) 2 . 3)
-     (nth-value 0 (negamax *game-state* #'score T 5))))
+                   (nth-value 0 (negamax *game-state* #'score T 5))))
   (with-state (make-initial-game-state)
     (assert-equalp '((1 . 4) 1 . 3)
-     (nth-value 0 (negamax *game-state* #'score T 6)))))
+                   (nth-value 0 (negamax *game-state* #'score T 6)))))
 
 (define-test negamax-test
   (with-state (make-initial-game-state) #'score
@@ -91,10 +91,21 @@
                    (nth-value 0 (negamax *game-state* #'score T 4))))
   (with-state (make-initial-game-state)
     (assert-equalp '((2 . 4) 2 . 3)
-     (nth-value 0 (negamax *game-state* #'score T 5))))
+                   (nth-value 0 (negamax *game-state* #'score T 5))))
   (with-state (make-initial-game-state)
     (assert-equalp '((1 . 4) 1 . 3)
-     (nth-value 0 (negamax *game-state* #'score T 6)))))
+                   (nth-value 0 (negamax *game-state* #'score T 6)))))
+
+(defparameter *hell-state* (parse-state (list
+              :turn 29
+              :on-move :white
+              :board
+              #("kn.rb"
+                "p...."
+                "Ppp.q"
+                ".P.Pp"
+                "..P.P"
+                "RN.KQ"))))
 
 
 (defun run-unit-tests ()

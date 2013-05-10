@@ -101,8 +101,8 @@
                ((or (eql piece-a black-king)
                     (eql piece-b black-king)) (setf black-king-alive T))))))
     (cond
-      ((not white-king-alive) :black)
-      ((not black-king-alive) :white)
+      ((not white-king-alive) +black+)
+      ((not black-king-alive) +white+)
       ((= 0 (length possible-moves)) (opp-color (game-state-on-move state)))
       ((> (game-state-turn state) 40) :draw)
       (T :ongoing))))
