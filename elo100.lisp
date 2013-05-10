@@ -10,7 +10,7 @@
 (load "game-status.lisp") ;;works
 (load "transposition-table.lisp") ;;works
 (load "bot.lisp") ;;works
-;;(load "external.lisp") ;;works?
-;;(load "play.lisp") ;;works?
-;;(load "imcs.lisp") ;;works
+(load "external.lisp") ;;works?
+(load "play.lisp") ;;works?
+(load "imcs.lisp") ;;works
 (load "tests.lisp") ;;works, not not good enough :/
